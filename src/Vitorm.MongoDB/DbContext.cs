@@ -1,4 +1,6 @@
-﻿namespace Vitorm.MongoDB
+﻿using System.Data;
+
+namespace Vitorm.MongoDB
 {
     public partial class DbContext : Vitorm.DbContext
     {
@@ -8,6 +10,18 @@
         {
             this.dbConfig = dbConfig;
         }
+
+
+        #region Transaction
+        public virtual IDbTransaction BeginTransaction() => throw new System.NotImplementedException();
+        public virtual IDbTransaction GetCurrentTransaction() => throw new System.NotImplementedException();
+
+        #endregion
+
+
+
+        public virtual string databaseName => throw new System.NotImplementedException();
+        public virtual void ChangeDatabase(string databaseName) => throw new System.NotImplementedException();
 
     }
 }

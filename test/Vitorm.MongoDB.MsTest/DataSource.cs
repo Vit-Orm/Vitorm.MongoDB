@@ -75,8 +75,8 @@ namespace Vitorm.MsTest
     {
         public static void WaitForUpdate() { }
 
-        public static DbContext CreateDbContextForWriting(bool autoInit = true) => CreateDbContext(autoInit);
-        public static DbContext CreateDbContext(bool autoInit = true)
+        public static Vitorm.MongoDB.DbContext CreateDbContextForWriting(bool autoInit = true) => CreateDbContext(autoInit);
+        public static Vitorm.MongoDB.DbContext CreateDbContext(bool autoInit = true)
         {
             var dbConfig = new DbConfig(Appsettings.json.GetByPath<Dictionary<string, object>>("Vitorm.MongoDB"));
             var dbContext = new Vitorm.MongoDB.DbContext(dbConfig);
@@ -90,7 +90,7 @@ namespace Vitorm.MsTest
         }
 
 
-        public static void InitDbContext(DbContext dbContext)
+        public static void InitDbContext(Vitorm.MongoDB.DbContext dbContext)
         {
             #region #1 init User
             {

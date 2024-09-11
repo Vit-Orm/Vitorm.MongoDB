@@ -32,11 +32,8 @@
 
     <ItemGroup>
         <PackageReference Include="MongoDB.Driver" Version="2.28.0" />
-        <!--<PackageReference Include="Vitorm" Version="$(Vitorm_Version)" />-->
+        <PackageReference Include="Vitorm" Version="$(Vitorm_Version)" />
     </ItemGroup>
 
-    <ItemGroup>
-      <ProjectReference Include="..\..\..\Vitorm\src\Vitorm\Vitorm.csproj" />
-    </ItemGroup>
 
 </Project>

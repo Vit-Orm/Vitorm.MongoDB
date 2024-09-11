@@ -17,13 +17,11 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{05176905-A2A
 		src\Versions.props = src\Versions.props
 	EndProjectSection
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Vitorm.Data.MsTest", "test\Vitorm.Data.MsTest\Vitorm.Data.MsTest.csproj", "{8643E97D-C1A8-434C-A393-CB1C4AA0B0D8}"
-EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Vitorm.MongoDB", "src\Vitorm.MongoDB\Vitorm.MongoDB.csproj", "{7AC01F47-AD5A-4B61-9F05-38094C1EF23B}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Vitorm.MongoDB.Console", "test\Vitorm.MongoDB.Console\Vitorm.MongoDB.Console.csproj", "{83947A51-9945-4851-9ABA-9661DB2069E4}"
-EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Vitorm.MongoDB.MsTest", "test\Vitorm.MongoDB.MsTest\Vitorm.MongoDB.MsTest.csproj", "{42E0FE60-9E3B-4B59-A69E-E50A20C89D6D}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Vitorm.MongoDB.Data.MsTest", "test\Vitorm.MongoDB.Data.MsTest\Vitorm.MongoDB.Data.MsTest.csproj", "{EB69697B-0CDB-4A28-AACF-22C31137DDE9}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -31,31 +29,26 @@ Global
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{8643E97D-C1A8-434C-A393-CB1C4AA0B0D8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{8643E97D-C1A8-434C-A393-CB1C4AA0B0D8}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{8643E97D-C1A8-434C-A393-CB1C4AA0B0D8}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{8643E97D-C1A8-434C-A393-CB1C4AA0B0D8}.Release|Any CPU.Build.0 = Release|Any CPU
 		{7AC01F47-AD5A-4B61-9F05-38094C1EF23B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{7AC01F47-AD5A-4B61-9F05-38094C1EF23B}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{7AC01F47-AD5A-4B61-9F05-38094C1EF23B}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{7AC01F47-AD5A-4B61-9F05-38094C1EF23B}.Release|Any CPU.Build.0 = Release|Any CPU
-		{83947A51-9945-4851-9ABA-9661DB2069E4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{83947A51-9945-4851-9ABA-9661DB2069E4}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{83947A51-9945-4851-9ABA-9661DB2069E4}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{83947A51-9945-4851-9ABA-9661DB2069E4}.Release|Any CPU.Build.0 = Release|Any CPU
 		{42E0FE60-9E3B-4B59-A69E-E50A20C89D6D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{42E0FE60-9E3B-4B59-A69E-E50A20C89D6D}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{42E0FE60-9E3B-4B59-A69E-E50A20C89D6D}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{42E0FE60-9E3B-4B59-A69E-E50A20C89D6D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{EB69697B-0CDB-4A28-AACF-22C31137DDE9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{EB69697B-0CDB-4A28-AACF-22C31137DDE9}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{EB69697B-0CDB-4A28-AACF-22C31137DDE9}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{EB69697B-0CDB-4A28-AACF-22C31137DDE9}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
-		{8643E97D-C1A8-434C-A393-CB1C4AA0B0D8} = {7904FE51-04FF-4477-8E3A-CC340389EE32}
 		{7AC01F47-AD5A-4B61-9F05-38094C1EF23B} = {05176905-A2A5-4015-9F04-2904506C902F}
-		{83947A51-9945-4851-9ABA-9661DB2069E4} = {7904FE51-04FF-4477-8E3A-CC340389EE32}
 		{42E0FE60-9E3B-4B59-A69E-E50A20C89D6D} = {7904FE51-04FF-4477-8E3A-CC340389EE32}
+		{EB69697B-0CDB-4A28-AACF-22C31137DDE9} = {7904FE51-04FF-4477-8E3A-CC340389EE32}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {C7DA16E3-9949-49FA-B0B4-F830636DE60F}

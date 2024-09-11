@@ -15,7 +15,7 @@ using Vitorm.Entity;
 namespace Vitorm.MongoDB
 {
     // https://www.mongodb.com/docs/drivers/csharp/current/
-
+    // https://learn.microsoft.com/zh-cn/aspnet/core/tutorials/first-mongo-app?view=aspnetcore-8.0&tabs=visual-studio
 
     public class DbSetConstructor
     {
