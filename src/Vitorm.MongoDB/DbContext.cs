@@ -11,6 +11,10 @@ namespace Vitorm.MongoDB
             this.dbConfig = dbConfig;
         }
 
+        public DbContext(string connectionString) : this(new DbConfig(connectionString))
+        {
+        }
+
 
         #region Transaction
         public virtual IDbTransaction BeginTransaction() => throw new System.NotImplementedException();
