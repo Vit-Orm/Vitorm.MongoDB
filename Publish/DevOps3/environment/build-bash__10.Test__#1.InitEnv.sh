@@ -12,7 +12,7 @@ export basePath=/root/temp
 
 
 #---------------------------------------------------------------------
-echo '#build-bash__10.Test__#1.InitEnv.sh -> #1 start ElasticSearch container'
+echo '#build-bash__10.Test__#1.InitEnv.sh -> #1 start MongoDB container'
 docker rm vitorm-mongodb -f || true
 docker run -d \
 --name vitorm-mongodb \
@@ -23,11 +23,9 @@ mongo:4.4.29
 
 
 #---------------------------------------------------------------------
-echo '#build-bash__10.Test__#1.InitEnv.sh -> #8 wait for containers to init'
+echo '#build-bash__10.Test__#1.InitEnv.sh -> #8 wait for MongoDB to init'
+docker run -t --rm --link vitorm-mongodb mongo:4.4.29 timeout 120 sh -c "until (echo 'use db_dev' | mongo --host vitorm-mongodb -u mongoadmin -p mongoadminsecret); do echo waiting for MongoDB; sleep 2; done;"
 
-
-echo '#build-bash__10.Test__#1.InitEnv.sh -> #8.1 wait for ElasticSearch to init' 
-# docker run -t --rm --link vitorm-mongodb curlimages/curl timeout 120 sh -c 'until curl "http://vitorm-mongodb:9200"; do echo waiting for MongoDB; sleep 2; done;'
 
 
 #---------------------------------------------------------------------
