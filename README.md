@@ -56,7 +56,7 @@ namespace App
         static void Main2(string[] args)
         {
             // #1 Init
-            using var dbContext = new Vitorm.MongoDB.DbContext("http://localhost:9200");
+            using var dbContext = new Vitorm.MongoDB.DbContext("mongodb://mongoadmin:mongoadminsecret@localhost:27017");
             dbContext.TryDropTable<User>();
             dbContext.TryCreateTable<User>();
             dbContext.Add(new User { id = 1, name = "lith" });
@@ -96,7 +96,7 @@ namespace App
         static void Main(string[] args)
         {
             // #1 Configures Vitorm
-            using var dbContext = new Vitorm.MongoDB.DbContext("http://localhost:9200");
+            using var dbContext = new Vitorm.MongoDB.DbContext("mongodb://mongoadmin:mongoadminsecret@localhost:27017");
 
             // #2 Create Table
             dbContext.TryDropTable<User>();
@@ -189,7 +189,7 @@ dotnet add package Vitorm.MongoDB
       {
         "provider": "MongoDB",
         "namespace": "App",
-        "connectionString": "http://localhost:9200"
+        "connectionString": "mongodb://mongoadmin:mongoadminsecret@localhost:27017"
       }
     ]
   }

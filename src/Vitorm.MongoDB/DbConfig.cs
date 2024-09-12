@@ -44,8 +44,8 @@ namespace Vitorm.MongoDB
         MongoClient client;
         MongoClient readOnlyClient;
 
-        MongoClient Client => client ?? (client = new MongoClient(connectionString));
-        MongoClient ReadOnlyClient => readOnlyClient ?? (readOnlyClient = new MongoClient(readOnlyConnectionString));
+        MongoClient Client => client ??= new MongoClient(connectionString);
+        MongoClient ReadOnlyClient => readOnlyClient ??= new MongoClient(readOnlyConnectionString);
 
         public IMongoDatabase GetDatabase() => Client.GetDatabase(database);
         public IMongoDatabase GetReadOnlyDatabase() => ReadOnlyClient.GetDatabase(database);
