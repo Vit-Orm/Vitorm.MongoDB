@@ -1,6 +1,4 @@
-﻿using System.Collections.Generic;
-
-namespace Vitorm.MongoDB
+﻿namespace Vitorm.MongoDB
 {
     public partial class DataProvider : Vitorm.DataProvider.DataProvider
     {
