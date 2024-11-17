@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
-using System.Reflection;
 using System.Threading.Tasks;
 
 using MongoDB.Driver;
@@ -14,28 +13,7 @@ using Vitorm.Entity;
 
 namespace Vitorm.MongoDB
 {
-    // https://www.mongodb.com/docs/drivers/csharp/current/
-    // https://learn.microsoft.com/zh-cn/aspnet/core/tutorials/first-mongo-app?view=aspnetcore-8.0&tabs=visual-studio
-
-    public class DbSetConstructor
-    {
-        public static IDbSet CreateDbSet(IDbContext dbContext, IEntityDescriptor entityDescriptor)
-        {
-            return _CreateDbSet.MakeGenericMethod(entityDescriptor.entityType)
-                     .Invoke(null, new object[] { dbContext, entityDescriptor }) as IDbSet;
-        }
-
-        static readonly MethodInfo _CreateDbSet = new Func<DbContext, IEntityDescriptor, IDbSet>(CreateDbSet<object>)
-                   .Method.GetGenericMethodDefinition();
-        public static IDbSet<Entity> CreateDbSet<Entity>(DbContext dbContext, IEntityDescriptor entityDescriptor)
-        {
-            return new DbSet<Entity>(dbContext, entityDescriptor);
-        }
-
-    }
-
-
-    public partial class DbSet<Entity> : IDbSet<Entity>
+    public partial class DbSet_Primitive<Entity> : IDbSet<Entity>
     {
         public virtual IDbContext dbContext { get; protected set; }
         public virtual DbContext DbContext => (DbContext)dbContext;
@@ -45,7 +23,7 @@ namespace Vitorm.MongoDB
         public virtual IEntityDescriptor entityDescriptor => _entityDescriptor;
 
 
-        public DbSet(DbContext dbContext, IEntityDescriptor entityDescriptor)
+        public DbSet_Primitive(DbContext dbContext, IEntityDescriptor entityDescriptor)
         {
             this.dbContext = dbContext;
             this._entityDescriptor = entityDescriptor;
