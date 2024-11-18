@@ -54,5 +54,12 @@ namespace Vitorm.MongoDB
 
 
         internal string dbHashCode => connectionString.GetHashCode().ToString();
+
+
+
+        /// <summary>
+        /// to identify whether contexts are from the same database
+        /// </summary>
+        public virtual string dbGroupName => "DbSet_" + dbHashCode;
     }
 }

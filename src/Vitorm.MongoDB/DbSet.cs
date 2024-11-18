@@ -1,40 +1,15 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Linq.Expressions;
-using System.Reflection;
 using System.Threading.Tasks;
 
+using MongoDB.Bson;
 using MongoDB.Driver;
-
-using Vit.Linq.FilterRules;
-using Vit.Linq.FilterRules.ComponentModel;
 
 using Vitorm.Entity;
 
 namespace Vitorm.MongoDB
 {
-    // https://www.mongodb.com/docs/drivers/csharp/current/
-    // https://learn.microsoft.com/zh-cn/aspnet/core/tutorials/first-mongo-app?view=aspnetcore-8.0&tabs=visual-studio
-
-    public class DbSetConstructor
-    {
-        public static IDbSet CreateDbSet(IDbContext dbContext, IEntityDescriptor entityDescriptor)
-        {
-            return _CreateDbSet.MakeGenericMethod(entityDescriptor.entityType)
-                     .Invoke(null, new object[] { dbContext, entityDescriptor }) as IDbSet;
-        }
-
-        static readonly MethodInfo _CreateDbSet = new Func<DbContext, IEntityDescriptor, IDbSet>(CreateDbSet<object>)
-                   .Method.GetGenericMethodDefinition();
-        public static IDbSet<Entity> CreateDbSet<Entity>(DbContext dbContext, IEntityDescriptor entityDescriptor)
-        {
-            return new DbSet<Entity>(dbContext, entityDescriptor);
-        }
-
-    }
-
-
     public partial class DbSet<Entity> : IDbSet<Entity>
     {
         public virtual IDbContext dbContext { get; protected set; }
@@ -56,65 +31,321 @@ namespace Vitorm.MongoDB
         public virtual IEntityDescriptor ChangeTableBack() => _entityDescriptor = _entityDescriptor.GetOriginEntityDescriptor();
 
         public IMongoDatabase database => DbContext.dbConfig.GetDatabase();
-        public IMongoCollection<Entity> collection => database.GetCollection<Entity>(entityDescriptor.tableName);
+
+        public IMongoCollection<BsonDocument> collection => database.GetCollection<BsonDocument>(entityDescriptor.tableName);
+
+
+
+        public virtual BsonDocument Serialize(Entity entity)
+        {
+            return DbContext.Serialize(entity, entityDescriptor);
+        }
+        public virtual Entity Deserialize(BsonDocument doc)
+        {
+            return (Entity)DbContext.Deserialize(doc, entityDescriptor);
+        }
+
+
 
 
         #region #0 Schema :  Create Drop
 
-        public virtual bool TableExist()
+        public virtual bool TableExists()
         {
-            var names = database.ListCollectionNames().ToList();
-            return names.Exists(name => entityDescriptor.tableName.Equals(name, StringComparison.OrdinalIgnoreCase));
+            var collectionNames = database.ListCollectionNames().ToList();
+            var exists = collectionNames.Exists(name => entityDescriptor.tableName.Equals(name, StringComparison.OrdinalIgnoreCase));
+
+            // Event_OnExecuting
+            DbContext.Event_OnExecuting(new Lazy<ExecuteEventArgument>(() => new ExecuteEventArgument(
+                dbContext: DbContext,
+                executeString: entityDescriptor.tableName,
+                extraParam: new()
+                {
+                    ["dbSet"] = this,
+                    ["entityDescriptor"] = entityDescriptor,
+                    ["Method"] = "TableExists",
+                    ["collectionNames"] = collectionNames,
+                    ["exists"] = exists
+                }))
+             );
+
+            return exists;
         }
-        public virtual async Task<bool> TableExistAsync()
+        public virtual async Task<bool> TableExistsAsync()
         {
-            var names = await (await database.ListCollectionNamesAsync()).ToListAsync();
-            return names.Exists(name => entityDescriptor.tableName.Equals(name, StringComparison.OrdinalIgnoreCase));
+            var collectionNames = await (await database.ListCollectionNamesAsync()).ToListAsync();
+            var exists = collectionNames.Exists(name => entityDescriptor.tableName.Equals(name, StringComparison.OrdinalIgnoreCase));
+
+            // Event_OnExecuting
+            DbContext.Event_OnExecuting(new Lazy<ExecuteEventArgument>(() => new ExecuteEventArgument(
+                dbContext: DbContext,
+                executeString: entityDescriptor.tableName,
+                extraParam: new()
+                {
+                    ["dbSet"] = this,
+                    ["entityDescriptor"] = entityDescriptor,
+                    ["Method"] = "TableExistsAsync",
+                    ["collectionNames"] = collectionNames,
+                    ["exists"] = exists
+                }))
+            );
+
+            return exists;
         }
+
+
+
+        public virtual void CreateIndex(string field, bool ascending = true, bool unique = false)
+        {
+            // https://www.mongodb.com/docs/drivers/csharp/current/fundamentals/indexes/
+            var options = new CreateIndexOptions { Unique = true };
+            var indexModel = new CreateIndexModel<BsonDocument>(Builders<BsonDocument>.IndexKeys.Ascending(entityDescriptor.key.columnName), options);
+
+            // Event_OnExecuting
+            DbContext.Event_OnExecuting(new Lazy<ExecuteEventArgument>(() => new ExecuteEventArgument(
+                dbContext: DbContext,
+                executeString: field,
+                extraParam: new()
+                {
+                    ["dbSet"] = this,
+                    ["entityDescriptor"] = entityDescriptor,
+                    ["Method"] = "CreateIndex",
+                    ["indexModel"] = indexModel
+                }))
+            );
+
+            collection.Indexes.CreateOne(indexModel);
+        }
+        public virtual async Task CreateIndexAsync(string field, bool ascending = true, bool unique = false)
+        {
+            var options = new CreateIndexOptions { Unique = true };
+            var indexModel = new CreateIndexModel<BsonDocument>(Builders<BsonDocument>.IndexKeys.Ascending(entityDescriptor.key.columnName), options);
+
+            // Event_OnExecuting
+            DbContext.Event_OnExecuting(new Lazy<ExecuteEventArgument>(() => new ExecuteEventArgument(
+                dbContext: DbContext,
+                executeString: field,
+                extraParam: new()
+                {
+                    ["dbSet"] = this,
+                    ["entityDescriptor"] = entityDescriptor,
+                    ["Method"] = "CreateIndexAsync",
+                    ["indexModel"] = indexModel
+                }))
+            );
+
+            await collection.Indexes.CreateOneAsync(indexModel);
+        }
+
+
 
         public virtual void TryCreateTable()
         {
-            if (!TableExist())
-                database.CreateCollection(entityDescriptor.tableName);
+            // Event_OnExecuting
+            DbContext.Event_OnExecuting(new Lazy<ExecuteEventArgument>(() => new ExecuteEventArgument(
+                dbContext: DbContext,
+                executeString: entityDescriptor.tableName,
+                extraParam: new()
+                {
+                    ["dbSet"] = this,
+                    ["entityDescriptor"] = entityDescriptor,
+                    ["Method"] = "TryCreateTable"
+                }))
+            );
+
+
+            if (TableExists()) return;
+
+            database.CreateCollection(entityDescriptor.tableName);
+
+            // create unique index
+            if (entityDescriptor.key != null && entityDescriptor.key.columnName != "_id")
+            {
+                CreateIndex(entityDescriptor.key.columnName, ascending: true, unique: true);
+            }
         }
+
+
         public virtual async Task TryCreateTableAsync()
         {
-            if (!await TableExistAsync())
-                await database.CreateCollectionAsync(entityDescriptor.tableName);
+            // Event_OnExecuting
+            DbContext.Event_OnExecuting(new Lazy<ExecuteEventArgument>(() => new ExecuteEventArgument(
+                dbContext: DbContext,
+                executeString: entityDescriptor.tableName,
+                extraParam: new()
+                {
+                    ["dbSet"] = this,
+                    ["entityDescriptor"] = entityDescriptor,
+                    ["Method"] = "TryCreateTableAsync"
+                }))
+            );
+
+            if (await TableExistsAsync()) return;
+
+            await database.CreateCollectionAsync(entityDescriptor.tableName);
+
+            // create unique index
+            if (entityDescriptor.key != null && entityDescriptor.key.columnName != "_id")
+            {
+                await CreateIndexAsync(entityDescriptor.key.columnName, ascending: true, unique: true);
+            }
         }
 
-        public virtual void TryDropTable() => database.DropCollection(entityDescriptor.tableName);
-        public virtual Task TryDropTableAsync() => database.DropCollectionAsync(entityDescriptor.tableName);
+        public virtual void TryDropTable()
+        {
+            // Event_OnExecuting
+            DbContext.Event_OnExecuting(new Lazy<ExecuteEventArgument>(() => new ExecuteEventArgument(
+                dbContext: DbContext,
+                executeString: entityDescriptor.tableName,
+                extraParam: new()
+                {
+                    ["dbSet"] = this,
+                    ["entityDescriptor"] = entityDescriptor,
+                    ["Method"] = "TryDropTable"
+                }))
+            );
 
+            database.DropCollection(entityDescriptor.tableName);
+        }
+        public virtual async Task TryDropTableAsync()
+        {
+            // Event_OnExecuting
+            DbContext.Event_OnExecuting(new Lazy<ExecuteEventArgument>(() => new ExecuteEventArgument(
+                dbContext: DbContext,
+                executeString: entityDescriptor.tableName,
+                extraParam: new()
+                {
+                    ["dbSet"] = this,
+                    ["entityDescriptor"] = entityDescriptor,
+                    ["Method"] = "TryDropTableAsync"
+                }))
+            );
 
-        public virtual void Truncate() => collection.DeleteMany(m => true);
+            await database.DropCollectionAsync(entityDescriptor.tableName);
+        }
 
-        public virtual Task TruncateAsync() => collection.DeleteManyAsync(m => true);
+        public virtual void Truncate()
+        {
+            // Event_OnExecuting
+            DbContext.Event_OnExecuting(new Lazy<ExecuteEventArgument>(() => new ExecuteEventArgument(
+                dbContext: DbContext,
+                executeString: entityDescriptor.tableName,
+                extraParam: new()
+                {
+                    ["dbSet"] = this,
+                    ["entityDescriptor"] = entityDescriptor,
+                    ["Method"] = "Truncate"
+                }))
+            );
 
+            collection.DeleteMany(m => true);
+        }
+        public virtual async Task TruncateAsync()
+        {
+            // Event_OnExecuting
+            DbContext.Event_OnExecuting(new Lazy<ExecuteEventArgument>(() => new ExecuteEventArgument(
+                dbContext: DbContext,
+                executeString: entityDescriptor.tableName,
+                extraParam: new()
+                {
+                    ["dbSet"] = this,
+                    ["entityDescriptor"] = entityDescriptor,
+                    ["Method"] = "TruncateAsync"
+                }))
+            );
+
+            await collection.DeleteManyAsync(m => true);
+        }
         #endregion
 
 
         #region #1 Create :  Add AddRange
         public virtual Entity Add(Entity entity)
         {
-            collection.InsertOne(entity);
+            var doc = DbContext.Serialize(entity, entityDescriptor);
+
+            // Event_OnExecuting
+            DbContext.Event_OnExecuting(new Lazy<ExecuteEventArgument>(() => new ExecuteEventArgument(
+                dbContext: DbContext,
+                executeString: doc?.ToJson(),
+                extraParam: new()
+                {
+                    ["dbSet"] = this,
+                    ["entityDescriptor"] = entityDescriptor,
+                    ["Method"] = "Add",
+                    ["entity"] = entity,
+                    ["doc"] = doc
+                }))
+            );
+
+            collection.InsertOne(doc);
+            return entity;
+        }
+
+
+        public virtual async Task<Entity> AddAsync(Entity entity)
+        {
+            var doc = DbContext.Serialize(entity, entityDescriptor);
+
+            // Event_OnExecuting
+            DbContext.Event_OnExecuting(new Lazy<ExecuteEventArgument>(() => new ExecuteEventArgument(
+                dbContext: DbContext,
+                executeString: doc?.ToJson(),
+                extraParam: new()
+                {
+                    ["dbSet"] = this,
+                    ["entityDescriptor"] = entityDescriptor,
+                    ["Method"] = "AddAsync",
+                    ["entity"] = entity,
+                    ["doc"] = doc
+                }))
+            );
+
+            await collection.InsertOneAsync(doc);
             return entity;
         }
 
         public virtual void AddRange(IEnumerable<Entity> entities)
         {
-            collection.InsertMany(entities);
+            var docs = entities.Select(entity => DbContext.Serialize(entity, entityDescriptor));
+
+            // Event_OnExecuting
+            DbContext.Event_OnExecuting(new Lazy<ExecuteEventArgument>(() => new ExecuteEventArgument(
+                dbContext: DbContext,
+                executeString: new BsonArray(docs)?.ToJson(),
+                extraParam: new()
+                {
+                    ["dbSet"] = this,
+                    ["entityDescriptor"] = entityDescriptor,
+                    ["Method"] = "AddRange",
+                    ["entities"] = entities,
+                    ["docs"] = docs
+                }))
+            );
+
+            collection.InsertMany(docs);
         }
 
-        public virtual async Task<Entity> AddAsync(Entity entity)
-        {
-            await collection.InsertOneAsync(entity);
-            return entity;
-        }
 
-        public virtual Task AddRangeAsync(IEnumerable<Entity> entities)
+        public virtual async Task AddRangeAsync(IEnumerable<Entity> entities)
         {
-            return collection.InsertManyAsync(entities);
+            var docs = entities.Select(entity => DbContext.Serialize(entity, entityDescriptor));
+
+            // Event_OnExecuting
+            DbContext.Event_OnExecuting(new Lazy<ExecuteEventArgument>(() => new ExecuteEventArgument(
+                dbContext: DbContext,
+                executeString: new BsonArray(docs)?.ToJson(),
+                extraParam: new()
+                {
+                    ["dbSet"] = this,
+                    ["entityDescriptor"] = entityDescriptor,
+                    ["Method"] = "AddRangeAsync",
+                    ["entities"] = entities,
+                    ["docs"] = docs
+                }))
+            );
+
+            await collection.InsertManyAsync(docs);
         }
         #endregion
 
@@ -124,48 +355,99 @@ namespace Vitorm.MongoDB
         public virtual Entity Get(object keyValue)
         {
             var predicate = GetKeyPredicate(keyValue);
-            return collection.Find(predicate).FirstOrDefault();
+
+            // Event_OnExecuting
+            DbContext.Event_OnExecuting(new Lazy<ExecuteEventArgument>(() => new ExecuteEventArgument(
+                dbContext: DbContext,
+                executeString: predicate?.ToJson(),
+                extraParam: new()
+                {
+                    ["dbSet"] = this,
+                    ["entityDescriptor"] = entityDescriptor,
+                    ["Method"] = "Get"
+                }))
+            );
+
+            return Deserialize(collection.Find(predicate).FirstOrDefault());
         }
 
-        public virtual Task<Entity> GetAsync(object keyValue)
+        public virtual async Task<Entity> GetAsync(object keyValue)
         {
             var predicate = GetKeyPredicate(keyValue);
-            return collection.Find(predicate).FirstOrDefaultAsync();
-        }
 
-        public virtual IQueryable<Entity> Query()
-        {
-            return collection.AsQueryable();
+            // Event_OnExecuting
+            DbContext.Event_OnExecuting(new Lazy<ExecuteEventArgument>(() => new ExecuteEventArgument(
+                dbContext: DbContext,
+                executeString: predicate?.ToJson(),
+                extraParam: new()
+                {
+                    ["dbSet"] = this,
+                    ["entityDescriptor"] = entityDescriptor,
+                    ["Method"] = "GetAsync"
+                }))
+            );
+
+            return Deserialize(await collection.Find(predicate).FirstOrDefaultAsync());
         }
 
         #endregion
 
 
-        public virtual Expression<Func<Entity, bool>> GetKeyPredicate(object keyValue)
+        public virtual BsonDocument GetKeyPredicate(object keyValue)
         {
-            var filter = new FilterRule { field = entityDescriptor.key.propertyName, @operator = "=", value = keyValue };
-            var predicate = FilterService.Instance.ConvertToCode_PredicateExpression<Entity>(filter);
-            return predicate;
+            return new BsonDocument { [entityDescriptor.key.columnName] = BsonValue.Create(keyValue) };
         }
 
-        public virtual Expression<Func<Entity, bool>> GetKeyPredicate<Key>(IEnumerable<Key> keys)
+        public virtual BsonDocument GetKeyPredicate<Key>(IEnumerable<Key> keys)
         {
-            var filter = new FilterRule { field = entityDescriptor.key.propertyName, @operator = "In", value = keys };
-            var predicate = FilterService.Instance.ConvertToCode_PredicateExpression<Entity>(filter);
-            return predicate;
+            var values = keys.Select(key => BsonValue.Create(key));
+            return new BsonDocument { [entityDescriptor.key.columnName] = new BsonDocument("$in", new BsonArray(values)) };
         }
 
         #region #3 Update: Update UpdateRange
         public virtual int Update(Entity entity)
         {
             var predicate = GetKeyPredicate(entityDescriptor.key.GetValue(entity));
-            var result = collection.ReplaceOne(predicate, entity);
+            var doc = Serialize(entity);
+
+            // Event_OnExecuting
+            DbContext.Event_OnExecuting(new Lazy<ExecuteEventArgument>(() => new ExecuteEventArgument(
+                dbContext: DbContext,
+                executeString: doc?.ToJson(),
+                extraParam: new()
+                {
+                    ["dbSet"] = this,
+                    ["entityDescriptor"] = entityDescriptor,
+                    ["Method"] = "Update",
+                    ["predicate"] = predicate,
+                    ["entity"] = entity,
+                    ["doc"] = doc,
+                })));
+
+
+            var result = collection.ReplaceOne(predicate, doc);
             return result.IsAcknowledged && result.IsModifiedCountAvailable ? (int)result.ModifiedCount : 0;
         }
         public virtual async Task<int> UpdateAsync(Entity entity)
         {
             var predicate = GetKeyPredicate(entityDescriptor.key.GetValue(entity));
-            var result = await collection.ReplaceOneAsync(predicate, entity);
+            var doc = Serialize(entity);
+
+            // Event_OnExecuting
+            DbContext.Event_OnExecuting(new Lazy<ExecuteEventArgument>(() => new ExecuteEventArgument(
+                dbContext: DbContext,
+                executeString: doc?.ToJson(),
+                extraParam: new()
+                {
+                    ["dbSet"] = this,
+                    ["entityDescriptor"] = entityDescriptor,
+                    ["Method"] = "UpdateAsync",
+                    ["predicate"] = predicate,
+                    ["entity"] = entity,
+                    ["doc"] = doc,
+                })));
+
+            var result = await collection.ReplaceOneAsync(predicate, doc);
             return result.IsAcknowledged && result.IsModifiedCountAvailable ? (int)result.ModifiedCount : 0;
         }
 
@@ -188,6 +470,7 @@ namespace Vitorm.MongoDB
         public virtual int Delete(Entity entity)
         {
             var keyValue = entityDescriptor.key.GetValue(entity);
+
             return DeleteByKey(keyValue);
         }
         public virtual Task<int> DeleteAsync(Entity entity)
@@ -214,12 +497,40 @@ namespace Vitorm.MongoDB
         public virtual int DeleteByKey(object keyValue)
         {
             var predicate = GetKeyPredicate(keyValue);
+
+            // Event_OnExecuting
+            DbContext.Event_OnExecuting(new Lazy<ExecuteEventArgument>(() => new ExecuteEventArgument(
+                dbContext: DbContext,
+                executeString: predicate?.ToJson(),
+                extraParam: new()
+                {
+                    ["dbSet"] = this,
+                    ["entityDescriptor"] = entityDescriptor,
+                    ["Method"] = "DeleteByKey",
+                    ["predicate"] = predicate,
+                    ["key"] = keyValue,
+                })));
+
             var result = collection.DeleteOne(predicate);
             return result.IsAcknowledged ? (int)result.DeletedCount : 0;
         }
         public virtual async Task<int> DeleteByKeyAsync(object keyValue)
         {
             var predicate = GetKeyPredicate(keyValue);
+
+            // Event_OnExecuting
+            DbContext.Event_OnExecuting(new Lazy<ExecuteEventArgument>(() => new ExecuteEventArgument(
+                dbContext: DbContext,
+                executeString: predicate?.ToJson(),
+                extraParam: new()
+                {
+                    ["dbSet"] = this,
+                    ["entityDescriptor"] = entityDescriptor,
+                    ["Method"] = "DeleteByKeyAsync",
+                    ["predicate"] = predicate,
+                    ["key"] = keyValue,
+                })));
+
             var result = await collection.DeleteOneAsync(predicate);
             return result.IsAcknowledged ? (int)result.DeletedCount : 0;
         }
@@ -229,12 +540,40 @@ namespace Vitorm.MongoDB
         public virtual int DeleteByKeys<Key>(IEnumerable<Key> keys)
         {
             var predicate = GetKeyPredicate<Key>(keys);
+
+            // Event_OnExecuting
+            DbContext.Event_OnExecuting(new Lazy<ExecuteEventArgument>(() => new ExecuteEventArgument(
+                dbContext: DbContext,
+                executeString: predicate?.ToJson(),
+                extraParam: new()
+                {
+                    ["dbSet"] = this,
+                    ["entityDescriptor"] = entityDescriptor,
+                    ["Method"] = "DeleteByKeys",
+                    ["predicate"] = predicate,
+                    ["keys"] = keys,
+                })));
+
             var result = collection.DeleteMany(predicate);
             return result.IsAcknowledged ? (int)result.DeletedCount : 0;
         }
         public virtual async Task<int> DeleteByKeysAsync<Key>(IEnumerable<Key> keys)
         {
             var predicate = GetKeyPredicate<Key>(keys);
+
+            // Event_OnExecuting
+            DbContext.Event_OnExecuting(new Lazy<ExecuteEventArgument>(() => new ExecuteEventArgument(
+                dbContext: DbContext,
+                executeString: predicate?.ToJson(),
+                extraParam: new()
+                {
+                    ["dbSet"] = this,
+                    ["entityDescriptor"] = entityDescriptor,
+                    ["Method"] = "DeleteByKeysAsync",
+                    ["predicate"] = predicate,
+                    ["keys"] = keys,
+                })));
+
             var result = await collection.DeleteManyAsync(predicate);
             return result.IsAcknowledged ? (int)result.DeletedCount : 0;
         }
