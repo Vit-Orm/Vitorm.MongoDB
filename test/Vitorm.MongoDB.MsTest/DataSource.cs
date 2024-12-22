@@ -29,12 +29,13 @@ namespace Vitorm.MsTest
 
         //[BsonDateTimeOptions(Kind = DateTimeKind.Utc)]
         public DateTime? birth { get; set; }
-
+        [System.ComponentModel.DataAnnotations.Schema.Column("userFatherId")]
         public int? fatherId { get; set; }
 
-
+        [System.ComponentModel.DataAnnotations.Schema.Column("userMotherId")]
         public int? motherId { get; set; }
 
+        [System.ComponentModel.DataAnnotations.Schema.Column("userClassId")]
         // [BsonIgnoreIfNull]
         public int? classId { get; set; }
 

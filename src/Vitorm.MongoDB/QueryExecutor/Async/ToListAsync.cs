@@ -2,51 +2,55 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using System.Threading.Tasks;
 
 using MongoDB.Driver;
+
+using Vit.Linq;
 
 using Vitorm.MongoDB.SearchExecutor;
 using Vitorm.StreamQuery;
 
 namespace Vitorm.MongoDB.QueryExecutor
 {
-    public partial class ToList : IQueryExecutor
+    public partial class ToListAsync : IQueryExecutor
     {
-        public static readonly ToList Instance = new();
+        public static readonly ToListAsync Instance = new();
 
-        public string methodName => nameof(Enumerable.ToList);
-
-
+        public string methodName => nameof(Queryable_Extensions.ToListAsync);
 
         public object ExecuteQuery(QueryExecutorArgument execArg)
         {
+            // #1
+            CombinedStream combinedStream = execArg.combinedStream;
+            var dbContext = execArg.dbContext;
+
+
             IQueryable query = null;
-            if (execArg.combinedStream.source is SourceStream sourceStream)
+            if (combinedStream.source is SourceStream sourceStream)
             {
                 query = sourceStream.GetSource() as IQueryable;
             }
-            else if (execArg.combinedStream.source is CombinedStream baseStream)
+            else if (combinedStream.source is CombinedStream baseStream)
             {
                 query = (baseStream.source as SourceStream)?.GetSource() as IQueryable;
             }
 
-            var entityType = query?.ElementType;
-            var resultEntityType = execArg.expression.Type.GetGenericArguments().First();
+            var entityType = query.ElementType;
+            var resultEntityType = execArg.expression.Type.GetGenericArguments().First().GetGenericArguments().First();
 
             return Execute_MethodInfo(entityType, resultEntityType).Invoke(null, new object[] { execArg });
         }
 
 
-
-
         private static MethodInfo Execute_MethodInfo_;
         static MethodInfo Execute_MethodInfo(Type entityType, Type resultEntityType) =>
-            (Execute_MethodInfo_ ??= new Func<QueryExecutorArgument, List<string>>(Execute<object, string>).Method.GetGenericMethodDefinition())
+            (Execute_MethodInfo_ ??= new Func<QueryExecutorArgument, Task<List<string>>>(Execute<object, string>).Method.GetGenericMethodDefinition())
             .MakeGenericMethod(entityType, resultEntityType);
 
 
 
-        public static List<ResultEntity> Execute<Entity, ResultEntity>(QueryExecutorArgument execArg)
+        public static async Task<List<ResultEntity>> Execute<Entity, ResultEntity>(QueryExecutorArgument execArg)
         {
             var combinedStream = execArg.combinedStream;
             var dbContext = execArg.dbContext;
@@ -55,16 +59,10 @@ namespace Vitorm.MongoDB.QueryExecutor
             searchArg.getList = true;
             searchArg.getTotalCount = false;
 
-            dbContext.ExecuteSearch<Entity, ResultEntity>(searchArg);
+            await dbContext.ExecuteSearchAsync<Entity, ResultEntity>(searchArg);
 
             return searchArg.list;
         }
-
-
-
-
-
-
 
 
     }

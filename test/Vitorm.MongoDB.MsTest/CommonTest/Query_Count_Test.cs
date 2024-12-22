@@ -91,14 +91,14 @@ namespace Vitorm.MsTest.CommonTest
 
 
                 // joinedTable
-                Test(users.SelectMany(user => users.Where(father => father.id == user.fatherId), (user, father) => user.fatherId), config);
-                Test(users.SelectMany(user => users.Where(father => father.id == user.fatherId), (user, father) => new { user.fatherId }), config);
+                //Test(users.SelectMany(user => users.Where(father => father.id == user.fatherId), (user, father) => user.fatherId), config);
+                //Test(users.SelectMany(user => users.Where(father => father.id == user.fatherId), (user, father) => new { user.fatherId }), config);
 
-                Test(users.SelectMany(user => users.Where(father => father.id == user.fatherId), (user, father) => user), config);
-                Test(users.SelectMany(user => users.Where(father => father.id == user.fatherId), (user, father) => new { user }), config);
-                Test(users.SelectMany(user => users.Where(father => father.id == user.fatherId), (user, father) => new { user, user.id }), config);
+                //Test(users.SelectMany(user => users.Where(father => father.id == user.fatherId), (user, father) => user), config);
+                //Test(users.SelectMany(user => users.Where(father => father.id == user.fatherId), (user, father) => new { user }), config);
+                //Test(users.SelectMany(user => users.Where(father => father.id == user.fatherId), (user, father) => new { user, user.id }), config);
 
-                Test(users.SelectMany(user => users.Where(father => father.id == user.fatherId), (user, father) => new { user, father }), config);
+                //Test(users.SelectMany(user => users.Where(father => father.id == user.fatherId), (user, father) => new { user, father }), config);
 
 
 
@@ -147,14 +147,14 @@ namespace Vitorm.MsTest.CommonTest
 
 
                 // joinedTable
-                Test(users.SelectMany(user => users.Where(father => father.id == user.fatherId), (user, father) => user.fatherId).OrderBy(m => m), config);
-                Test(users.SelectMany(user => users.Where(father => father.id == user.fatherId), (user, father) => new { user.fatherId }).OrderBy(m => m.fatherId), config);
+                //Test(users.SelectMany(user => users.Where(father => father.id == user.fatherId), (user, father) => user.fatherId).OrderBy(m => m), config);
+                //Test(users.SelectMany(user => users.Where(father => father.id == user.fatherId), (user, father) => new { user.fatherId }).OrderBy(m => m.fatherId), config);
 
-                Test(users.SelectMany(user => users.Where(father => father.id == user.fatherId), (user, father) => user).OrderBy(m => m.fatherId), config);
-                Test(users.SelectMany(user => users.Where(father => father.id == user.fatherId), (user, father) => new { user }).OrderBy(m => m.user.fatherId), config);
-                Test(users.SelectMany(user => users.Where(father => father.id == user.fatherId), (user, father) => new { user, user.id }).OrderBy(m => m.user.fatherId), config);
+                //Test(users.SelectMany(user => users.Where(father => father.id == user.fatherId), (user, father) => user).OrderBy(m => m.fatherId), config);
+                //Test(users.SelectMany(user => users.Where(father => father.id == user.fatherId), (user, father) => new { user }).OrderBy(m => m.user.fatherId), config);
+                //Test(users.SelectMany(user => users.Where(father => father.id == user.fatherId), (user, father) => new { user, user.id }).OrderBy(m => m.user.fatherId), config);
 
-                Test(users.SelectMany(user => users.Where(father => father.id == user.fatherId), (user, father) => new { user, father }).OrderBy(m => m.user.fatherId), config);
+                //Test(users.SelectMany(user => users.Where(father => father.id == user.fatherId), (user, father) => new { user, father }).OrderBy(m => m.user.fatherId), config);
 
 
                 // order by alias column

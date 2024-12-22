@@ -52,7 +52,7 @@ namespace Vitorm.MongoDB
 
         public virtual bool TableExists()
         {
-            var collectionNames = database.ListCollectionNames().ToList();
+            var collectionNames = DbContext.session == null ? database.ListCollectionNames().ToList() : database.ListCollectionNames(DbContext.session).ToList();
             var exists = collectionNames.Exists(name => entityDescriptor.tableName.Equals(name, StringComparison.OrdinalIgnoreCase));
 
             // Event_OnExecuting
@@ -73,7 +73,7 @@ namespace Vitorm.MongoDB
         }
         public virtual async Task<bool> TableExistsAsync()
         {
-            var collectionNames = await (await database.ListCollectionNamesAsync()).ToListAsync();
+            var collectionNames = DbContext.session == null ? await (await database.ListCollectionNamesAsync()).ToListAsync() : await (await database.ListCollectionNamesAsync(DbContext.session)).ToListAsync();
             var exists = collectionNames.Exists(name => entityDescriptor.tableName.Equals(name, StringComparison.OrdinalIgnoreCase));
 
             // Event_OnExecuting
@@ -114,7 +114,10 @@ namespace Vitorm.MongoDB
                 }))
             );
 
-            collection.Indexes.CreateOne(indexModel);
+            if (DbContext.session == null)
+                collection.Indexes.CreateOne(indexModel);
+            else
+                collection.Indexes.CreateOne(DbContext.session, indexModel);
         }
         public virtual async Task CreateIndexAsync(string field, bool ascending = true, bool unique = false)
         {
@@ -134,7 +137,11 @@ namespace Vitorm.MongoDB
                 }))
             );
 
-            await collection.Indexes.CreateOneAsync(indexModel);
+            if (DbContext.session == null)
+                await collection.Indexes.CreateOneAsync(indexModel);
+            else
+                await collection.Indexes.CreateOneAsync(DbContext.session, indexModel);
+
         }
 
 
@@ -156,7 +163,12 @@ namespace Vitorm.MongoDB
 
             if (TableExists()) return;
 
-            database.CreateCollection(entityDescriptor.tableName);
+
+            if (DbContext.session == null)
+                database.CreateCollection(entityDescriptor.tableName);
+            else
+                database.CreateCollection(DbContext.session, entityDescriptor.tableName);
+
 
             // create unique index
             if (entityDescriptor.key != null && entityDescriptor.key.columnName != "_id")
@@ -182,7 +194,12 @@ namespace Vitorm.MongoDB
 
             if (await TableExistsAsync()) return;
 
-            await database.CreateCollectionAsync(entityDescriptor.tableName);
+
+            if (DbContext.session == null)
+                await database.CreateCollectionAsync(entityDescriptor.tableName);
+            else
+                await database.CreateCollectionAsync(DbContext.session, entityDescriptor.tableName);
+
 
             // create unique index
             if (entityDescriptor.key != null && entityDescriptor.key.columnName != "_id")
@@ -205,7 +222,11 @@ namespace Vitorm.MongoDB
                 }))
             );
 
-            database.DropCollection(entityDescriptor.tableName);
+            if (DbContext.session == null)
+                database.DropCollection(entityDescriptor.tableName);
+            else
+                database.DropCollection(DbContext.session, entityDescriptor.tableName);
+
         }
         public virtual async Task TryDropTableAsync()
         {
@@ -221,7 +242,11 @@ namespace Vitorm.MongoDB
                 }))
             );
 
-            await database.DropCollectionAsync(entityDescriptor.tableName);
+
+            if (DbContext.session == null)
+                await database.DropCollectionAsync(entityDescriptor.tableName);
+            else
+                await database.DropCollectionAsync(DbContext.session, entityDescriptor.tableName);
         }
 
         public virtual void Truncate()
@@ -238,7 +263,11 @@ namespace Vitorm.MongoDB
                 }))
             );
 
-            collection.DeleteMany(m => true);
+            if (DbContext.session == null)
+                collection.DeleteMany(m => true);
+            else
+                collection.DeleteMany(DbContext.session, m => true);
+
         }
         public virtual async Task TruncateAsync()
         {
@@ -254,7 +283,12 @@ namespace Vitorm.MongoDB
                 }))
             );
 
-            await collection.DeleteManyAsync(m => true);
+
+            if (DbContext.session == null)
+                await collection.DeleteManyAsync(m => true);
+            else
+                await collection.DeleteManyAsync(DbContext.session, m => true);
+
         }
         #endregion
 
@@ -278,7 +312,11 @@ namespace Vitorm.MongoDB
                 }))
             );
 
-            collection.InsertOne(doc);
+            if (DbContext.session == null)
+                collection.InsertOne(doc);
+            else
+                collection.InsertOne(DbContext.session, doc);
+
             return entity;
         }
 
@@ -301,7 +339,11 @@ namespace Vitorm.MongoDB
                 }))
             );
 
-            await collection.InsertOneAsync(doc);
+            if (DbContext.session == null)
+                await collection.InsertOneAsync(doc);
+            else
+                await collection.InsertOneAsync(DbContext.session, doc);
+
             return entity;
         }
 
@@ -323,7 +365,11 @@ namespace Vitorm.MongoDB
                 }))
             );
 
-            collection.InsertMany(docs);
+            if (DbContext.session == null)
+                collection.InsertMany(docs);
+            else
+                collection.InsertMany(DbContext.session, docs);
+
         }
 
 
@@ -345,7 +391,11 @@ namespace Vitorm.MongoDB
                 }))
             );
 
-            await collection.InsertManyAsync(docs);
+            if (DbContext.session == null)
+                await collection.InsertManyAsync(docs);
+            else
+                await collection.InsertManyAsync(DbContext.session, docs);
+
         }
         #endregion
 
@@ -368,7 +418,9 @@ namespace Vitorm.MongoDB
                 }))
             );
 
-            return Deserialize(collection.Find(predicate).FirstOrDefault());
+            var fluent = DbContext.session == null ? collection.Find(predicate) : collection.Find(DbContext.session, predicate);
+
+            return Deserialize(fluent.FirstOrDefault());
         }
 
         public virtual async Task<Entity> GetAsync(object keyValue)
@@ -386,8 +438,8 @@ namespace Vitorm.MongoDB
                     ["Method"] = "GetAsync"
                 }))
             );
-
-            return Deserialize(await collection.Find(predicate).FirstOrDefaultAsync());
+            var fluent = DbContext.session == null ? await collection.FindAsync(predicate) : await collection.FindAsync(DbContext.session, predicate);
+            return Deserialize(await fluent.FirstOrDefaultAsync());
         }
 
         #endregion
@@ -424,8 +476,7 @@ namespace Vitorm.MongoDB
                     ["doc"] = doc,
                 })));
 
-
-            var result = collection.ReplaceOne(predicate, doc);
+            var result = DbContext.session == null ? collection.ReplaceOne(predicate, doc) : collection.ReplaceOne(DbContext.session, predicate, doc);
             return result.IsAcknowledged && result.IsModifiedCountAvailable ? (int)result.ModifiedCount : 0;
         }
         public virtual async Task<int> UpdateAsync(Entity entity)
@@ -447,7 +498,7 @@ namespace Vitorm.MongoDB
                     ["doc"] = doc,
                 })));
 
-            var result = await collection.ReplaceOneAsync(predicate, doc);
+            var result = DbContext.session == null ? await collection.ReplaceOneAsync(predicate, doc) : await collection.ReplaceOneAsync(DbContext.session, predicate, doc);
             return result.IsAcknowledged && result.IsModifiedCountAvailable ? (int)result.ModifiedCount : 0;
         }
 
@@ -511,7 +562,7 @@ namespace Vitorm.MongoDB
                     ["key"] = keyValue,
                 })));
 
-            var result = collection.DeleteOne(predicate);
+            var result = DbContext.session == null ? collection.DeleteOne(predicate) : collection.DeleteOne(DbContext.session, predicate);
             return result.IsAcknowledged ? (int)result.DeletedCount : 0;
         }
         public virtual async Task<int> DeleteByKeyAsync(object keyValue)
@@ -531,7 +582,7 @@ namespace Vitorm.MongoDB
                     ["key"] = keyValue,
                 })));
 
-            var result = await collection.DeleteOneAsync(predicate);
+            var result = DbContext.session == null ? await collection.DeleteOneAsync(predicate) : await collection.DeleteOneAsync(DbContext.session, predicate);
             return result.IsAcknowledged ? (int)result.DeletedCount : 0;
         }
 
@@ -554,7 +605,7 @@ namespace Vitorm.MongoDB
                     ["keys"] = keys,
                 })));
 
-            var result = collection.DeleteMany(predicate);
+            var result = DbContext.session == null ? collection.DeleteMany(predicate) : collection.DeleteMany(DbContext.session, predicate);
             return result.IsAcknowledged ? (int)result.DeletedCount : 0;
         }
         public virtual async Task<int> DeleteByKeysAsync<Key>(IEnumerable<Key> keys)
@@ -574,7 +625,7 @@ namespace Vitorm.MongoDB
                     ["keys"] = keys,
                 })));
 
-            var result = await collection.DeleteManyAsync(predicate);
+            var result = DbContext.session == null ? await collection.DeleteManyAsync(predicate) : await collection.DeleteManyAsync(DbContext.session, predicate);
             return result.IsAcknowledged ? (int)result.DeletedCount : 0;
         }
 

@@ -54,22 +54,22 @@ namespace Vitorm.MongoDB
             //// Orm_Extensions
             //AddDefaultQueryExecutor(ExecuteUpdate.Instance);
             //AddDefaultQueryExecutor(ExecuteDelete.Instance);
-            //AddDefaultQueryExecutor(ToExecuteString.Instance);
+            AddDefaultQueryExecutor(ToExecuteString.Instance);
 
             // ToList
             AddDefaultQueryExecutor(ToList.Instance);
-            //// Count TotalCount
-            //AddDefaultQueryExecutor(Count.Instance);
-            //AddDefaultQueryExecutor(Count.Instance, methodName: nameof(Queryable_Extensions.TotalCount));
+            // Count TotalCount
+            AddDefaultQueryExecutor(Count.Instance);
+            AddDefaultQueryExecutor(Count.Instance, methodName: nameof(Queryable_Extensions.TotalCount));
 
             //// ToListAndTotalCount
             //AddDefaultQueryExecutor(ToListAndTotalCount.Instance);
 
-            //// FirstOrDefault First LastOrDefault Last
-            //AddDefaultQueryExecutor(FirstOrDefault.Instance);
-            //AddDefaultQueryExecutor(FirstOrDefault.Instance, methodName: nameof(Queryable.First));
-            //AddDefaultQueryExecutor(FirstOrDefault.Instance, methodName: nameof(Queryable.LastOrDefault));
-            //AddDefaultQueryExecutor(FirstOrDefault.Instance, methodName: nameof(Queryable.Last));
+            // FirstOrDefault First LastOrDefault Last
+            AddDefaultQueryExecutor(FirstOrDefault.Instance);
+            AddDefaultQueryExecutor(FirstOrDefault.Instance, methodName: nameof(Queryable.First));
+            AddDefaultQueryExecutor(FirstOrDefault.Instance, methodName: nameof(Queryable.LastOrDefault));
+            AddDefaultQueryExecutor(FirstOrDefault.Instance, methodName: nameof(Queryable.Last));
             #endregion
 
 
@@ -78,8 +78,8 @@ namespace Vitorm.MongoDB
             //AddDefaultQueryExecutor(ExecuteUpdateAsync.Instance);
             //AddDefaultQueryExecutor(ExecuteDeleteAsync.Instance);
 
-            //// ToList
-            //AddDefaultQueryExecutor(ToListAsync.Instance);
+            // ToList
+            AddDefaultQueryExecutor(ToListAsync.Instance);
             //// Count TotalCount
             //AddDefaultQueryExecutor(CountAsync.Instance);
             //AddDefaultQueryExecutor(CountAsync.Instance, methodName: nameof(Queryable_AsyncExtensions.TotalCountAsync));
