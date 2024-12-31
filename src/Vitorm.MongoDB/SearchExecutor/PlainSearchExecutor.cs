@@ -35,7 +35,6 @@ namespace Vitorm.MongoDB.SearchExecutor
         {
             if (!IsMatch(arg)) return false;
 
-
             #region getList
             if (arg.getList)
             {
@@ -96,7 +95,6 @@ namespace Vitorm.MongoDB.SearchExecutor
         {
             if (!IsMatch(arg)) return false;
 
-
             #region getList
             if (arg.getList)
             {
@@ -136,7 +134,7 @@ namespace Vitorm.MongoDB.SearchExecutor
             return false;
         }
 
-        static IEnumerable<Entity> ReadList<Entity>(DbContext dbContext, IEntityDescriptor entityDescriptor, IAsyncCursor<BsonDocument> cursor)
+        public static IEnumerable<Entity> ReadList<Entity>(DbContext dbContext, IEntityDescriptor entityDescriptor, IAsyncCursor<BsonDocument> cursor)
         {
             while (cursor.MoveNext())
             {

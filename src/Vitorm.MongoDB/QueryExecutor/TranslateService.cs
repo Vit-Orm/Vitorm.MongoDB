@@ -8,7 +8,6 @@ using MongoDB.Bson;
 
 using Vit.Linq.ExpressionNodes.ComponentModel;
 
-using Vitorm.Entity.PropertyType;
 using Vitorm.StreamQuery;
 
 namespace Vitorm.MongoDB.QueryExecutor
@@ -23,104 +22,10 @@ namespace Vitorm.MongoDB.QueryExecutor
         }
 
 
-        public virtual string GetFieldPath(QueryExecutorArgument arg, ExpressionNode member, out IPropertyType propertyType)
-        {
-            switch (member?.nodeType)
-            {
-                case NodeType.Member:
-                    {
-                        if (member.objectValue != null)
-                        {
-                            // nested field
-                            var parentPath = GetFieldPath(arg, member.objectValue, out var parentPropertyType);
 
-                            var memberType = member.objectValue.Member_GetType();
-                            // bool?.Value
-                            if (member.memberName == nameof(Nullable<bool>.Value) && TypeUtil.IsNullable(memberType))
-                            {
-                                propertyType = parentPropertyType;
-                                return parentPath;
-                            }
-
-
-                            if (!string.IsNullOrWhiteSpace(member.memberName) && parentPropertyType is IPropertyObjectType parentObjectType)
-                            {
-                                var propertyDescriptor = parentObjectType.properties?.FirstOrDefault(property => property.propertyName == member.memberName);
-
-                                if (propertyDescriptor != null)
-                                {
-                                    propertyType = propertyDescriptor.propertyType;
-
-                                    var columnName = propertyDescriptor.columnName;
-
-                                    var fieldPath = columnName;
-                                    if (parentPath != null) fieldPath = parentPath + "." + fieldPath;
-                                    return fieldPath;
-                                }
-                            }
-                            break;
-                        }
-                        else
-                        {
-                            // entity root
-                            var entityType = member.Member_GetType();
-                            var entityDescriptor = arg.dbContext.GetEntityDescriptor(entityType);
-                            propertyType = entityDescriptor.propertyType;
-
-                            if (string.IsNullOrWhiteSpace(member.memberName)) return null;
-                            break;
-                        }
-                    }
-                case NodeType.ArrayIndex:
-                    {
-                        ExpressionNode_ArrayIndex arrayIndex = member;
-
-                        var index = arrayIndex.right.value;
-                        var parentPath = GetFieldPath(arg, arrayIndex.left, out var parentPropertyType);
-
-                        if (parentPropertyType is IPropertyArrayType arrayType)
-                        {
-                            propertyType = arrayType.elementPropertyType;
-
-                            var filePath = $"{index}";
-                            if (parentPath != null) filePath = parentPath + "." + filePath;
-                            return filePath;
-                        }
-                        break;
-                    }
-
-                case NodeType.MethodCall:
-                    {
-                        ExpressionNode_MethodCall methodCall = member;
-
-                        switch (methodCall.methodName)
-                        {
-                            // ##1 List.get_Item
-                            case "get_Item" when methodCall.@object is not null && methodCall.arguments.Length == 1:
-                                {
-                                    var index = methodCall.arguments[0]?.value;
-                                    var parentPath = GetFieldPath(arg, methodCall.@object, out var parentPropertyType);
-
-                                    if (parentPropertyType is IPropertyArrayType arrayType)
-                                    {
-                                        propertyType = arrayType?.elementPropertyType;
-
-                                        var filePath = $"{index}";
-                                        if (parentPath != null) filePath = parentPath + "." + filePath;
-                                        return filePath;
-                                    }
-                                    break;
-                                }
-                        }
-                        break;
-                    }
-            }
-
-            throw new InvalidOperationException($"Can not get fieldPath from member:{member?.nodeType}");
-        }
         public virtual string GetFieldPath(QueryExecutorArgument arg, ExpressionNode member)
         {
-            return GetFieldPath(arg, member, out _);
+            return arg.GetFieldPath(member);
         }
 
 
@@ -280,8 +185,9 @@ namespace Vitorm.MongoDB.QueryExecutor
                     }
                 case NodeType.Member:
                     {
-                        var fieldPath = GetFieldPath(arg, node, out var propertyType);
-                        if (propertyType.type == typeof(bool) || propertyType.type == typeof(bool?))
+                        var propertyType = node.Member_GetType();
+                        var fieldPath = GetFieldPath(arg, node);
+                        if (propertyType == typeof(bool) || propertyType == typeof(bool?))
                             return new BsonDocument(fieldPath, new BsonDocument("$eq", BsonValue.Create(true)));
                         break;
                     }

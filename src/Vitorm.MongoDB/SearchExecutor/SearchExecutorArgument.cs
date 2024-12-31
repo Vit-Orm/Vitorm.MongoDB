@@ -18,6 +18,7 @@ namespace Vitorm.MongoDB.SearchExecutor
         public List<ResultEntity> list;
         public int? totalCount;
         public object extraResult;
+
     }
 
 }
