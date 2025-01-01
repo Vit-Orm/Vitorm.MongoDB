@@ -115,6 +115,12 @@ namespace Vitorm.MongoDB.QueryExecutor
                                     }
                                     break;
                                 }
+                            // ##2 Count
+                            case nameof(Enumerable.Count) when methodCall.@object is null && methodCall.arguments.Length == 1:
+                                {
+                                    propertyType = null;
+                                    return "count";
+                                }
                         }
                         break;
                     }
