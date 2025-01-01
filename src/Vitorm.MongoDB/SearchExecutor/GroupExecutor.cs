@@ -9,12 +9,9 @@ using MongoDB.Bson;
 using MongoDB.Bson.Serialization;
 using MongoDB.Driver;
 
-using SharpCompress.Common;
-
 using Vit.Linq.ExpressionNodes.ComponentModel;
 
 using Vitorm.Entity;
-using Vitorm.Entity.PropertyType;
 using Vitorm.MongoDB.QueryExecutor;
 using Vitorm.StreamQuery;
 
@@ -74,10 +71,8 @@ namespace Vitorm.MongoDB.SearchExecutor
 
         static bool Execute<Entity, ResultEntity, Key>(SearchExecutorArgument<ResultEntity> arg)
         {
-             
             if (arg.getList)
             {
-
                 var combinedStream = arg.combinedStream;
                 var dbContext = arg.dbContext;
                 var entityDescriptor = dbContext.GetEntityDescriptor(typeof(Entity));
@@ -114,7 +109,7 @@ namespace Vitorm.MongoDB.SearchExecutor
         }
         class Grouping<TKey, TElement> : IGrouping<TKey, TElement>
         {
-            class KeyWrap 
+            class KeyWrap
             {
                 public TKey Key { get; set; }
             }
@@ -145,25 +140,34 @@ namespace Vitorm.MongoDB.SearchExecutor
 
         static IAsyncCursor<BsonDocument> ExecuteQuery<Entity, ResultEntity>(SearchExecutorArgument<ResultEntity> arg, IEntityDescriptor entityDescriptor)
         {
+            var dbContext = arg.dbContext;
+            var database = dbContext.dbConfig.GetDatabase();
+            var collection = database.GetCollection<BsonDocument>(entityDescriptor.tableName);
+
+            var pipeline = GetAggregatePipeline(arg.execArg);
+
+            // Execute aggregation
+            return dbContext.session == null ? collection.Aggregate<BsonDocument>(pipeline) : collection.Aggregate<BsonDocument>(dbContext.session, pipeline);
+        }
+
+        public static BsonDocument[] GetAggregatePipeline(QueryExecutorArgument arg)
+        {
             CombinedStream combinedStream = arg.combinedStream;
             var dbContext = arg.dbContext;
             var translateService = dbContext.translateService;
 
-            var database = dbContext.dbConfig.GetDatabase();
-            var collection = database.GetCollection<BsonDocument>(entityDescriptor.tableName);
-
-
             // #2 filter
-            var filter = combinedStream?.where == null ? null : translateService.TranslateFilter(arg.execArg, combinedStream.where);
+            var filter = combinedStream?.where == null ? null : translateService.TranslateFilter(arg, combinedStream.where);
 
             // #3 groupByFields
             List<(string field, string fieldAs)> groupFields = new();
-            BsonValue groupByFields   ;
-            BsonValue projectFields  ;
-            var groupFieldArg = new QueryExecutorArgument_GroupFilter(arg.execArg, groupFields);
+            BsonValue groupByFields;
+            BsonValue projectFields;
+            var groupFieldArg = new QueryExecutorArgument_GroupFilter(arg, groupFields);
+
             #region groupByFields
             {
-                var node = combinedStream.groupByFields;                 
+                var node = combinedStream.groupByFields;
 
                 if (node?.nodeType == NodeType.New)
                 {
@@ -171,7 +175,7 @@ namespace Vitorm.MongoDB.SearchExecutor
                     newNode.constructorArgs.ForEach(nodeArg =>
                     {
                         var fieldAs = nodeArg.name;
-                        var field = translateService.GetFieldPath(arg.execArg, nodeArg.value);
+                        var field = arg.GetFieldPath(nodeArg.value);
                         groupFields.Add((field, fieldAs));
                     });
 
@@ -181,7 +185,7 @@ namespace Vitorm.MongoDB.SearchExecutor
                 else if (node?.nodeType == NodeType.Member)
                 {
                     string fieldAs = null;
-                    var field = translateService.GetFieldPath(arg.execArg, node);
+                    var field = arg.GetFieldPath(node);
                     groupFields.Add((field, fieldAs));
 
                     groupByFields = "$" + field;
@@ -199,7 +203,7 @@ namespace Vitorm.MongoDB.SearchExecutor
 
 
             // #5 order by fields
-            var orderFields = GetOrderFields<Entity, ResultEntity>(groupFieldArg);
+            var orderFields = GetOrderFields(groupFieldArg);
             var orderByFields = orderFields == null ? null : new BsonDocument(orderFields.ToDictionary(field => field.field, field => BsonValue.Create(field.asc ? 1 : -1)));
 
             // Aggregation pipeline
@@ -244,18 +248,16 @@ namespace Vitorm.MongoDB.SearchExecutor
 
             }.Where(m => m != null).ToArray();
 
-            // Execute aggregation
-            return dbContext.session == null ? collection.Aggregate<BsonDocument>(pipeline) : collection.Aggregate<BsonDocument>(dbContext.session, pipeline);
+            return pipeline;
         }
 
 
-         
 
-        static List<(string field, bool asc, int index)> GetOrderFields<Entity, ResultEntity>(QueryExecutorArgument arg)
+        static List<(string field, bool asc, int index)> GetOrderFields(QueryExecutorArgument arg)
         {
             return arg.combinedStream.orders?.Select((orderField, index) =>
             {
-                var field = arg.GetFieldPath( orderField.member);
+                var field = arg.GetFieldPath(orderField.member);
                 return (field, orderField.asc, index);
             }).ToList();
         }
@@ -299,6 +301,6 @@ namespace Vitorm.MongoDB.SearchExecutor
             }
         }
 
-      
+
     }
 }

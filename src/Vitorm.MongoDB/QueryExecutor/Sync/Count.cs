@@ -2,7 +2,10 @@
 using System.Linq;
 
 using MongoDB.Bson;
+using MongoDB.Driver;
 
+using Vitorm.Entity;
+using Vitorm.MongoDB.SearchExecutor;
 using Vitorm.StreamQuery;
 
 namespace Vitorm.MongoDB.QueryExecutor
@@ -20,11 +23,29 @@ namespace Vitorm.MongoDB.QueryExecutor
         {
             using var _ = execArg;
 
-            return Execute(execArg);
+            CombinedStream combinedStream = execArg.combinedStream;
+            var dbContext = execArg.dbContext;
+            IQueryable query = null;
+            if (combinedStream.source is SourceStream sourceStream)
+            {
+                query = sourceStream.GetSource() as IQueryable;
+            }
+            else if (combinedStream.source is CombinedStream baseStream)
+            {
+                query = (baseStream.source as SourceStream)?.GetSource() as IQueryable;
+            }
+
+            var queryEntityType = query?.ElementType;
+            var entityDescriptor = dbContext.GetEntityDescriptor(queryEntityType);
+
+
+            if (execArg.combinedStream.isGroupedStream) return ExecuteGroup(execArg, entityDescriptor);
+
+            return ExecutePlain(execArg, entityDescriptor);
         }
 
 
-        public static int Execute(QueryExecutorArgument execArg)
+        public static int ExecutePlain(QueryExecutorArgument execArg, IEntityDescriptor entityDescriptor)
         {
             CombinedStream combinedStream = execArg.combinedStream;
             var dbContext = execArg.dbContext;
@@ -33,20 +54,6 @@ namespace Vitorm.MongoDB.QueryExecutor
             // #2 filter
             var filter = translateService.TranslateFilter(execArg, combinedStream);
 
-            IQueryable query = null;
-
-            if (combinedStream.source is SourceStream sourceStream)
-            {
-                query = sourceStream.GetSource() as IQueryable;
-            }
-            else if (combinedStream.source is CombinedStream baseStream)
-            {
-                query = (baseStream.source as SourceStream)?.GetSource() as IQueryable;
-
-            }
-
-            var queryEntityType = query?.ElementType;
-            var entityDescriptor = dbContext.GetEntityDescriptor(queryEntityType);
 
 
             // Event_OnExecuting
@@ -80,5 +87,36 @@ namespace Vitorm.MongoDB.QueryExecutor
             return count;
         }
 
+
+        public static int ExecuteGroup(QueryExecutorArgument execArg, IEntityDescriptor entityDescriptor)
+        {
+            var dbContext = execArg.dbContext;
+            var database = dbContext.dbConfig.GetDatabase();
+            var collection = database.GetCollection<BsonDocument>(entityDescriptor.tableName);
+
+            var pipeline = GroupExecutor.GetAggregatePipeline(execArg);
+            pipeline = pipeline.Concat(new[] { new BsonDocument("$count", "count") }).ToArray();
+
+
+            // Event_OnExecuting
+            dbContext.Event_OnExecuting(new Lazy<ExecuteEventArgument>(() => new ExecuteEventArgument(
+                dbContext: dbContext,
+                executeString: pipeline.ToJson(),
+                extraParam: new()
+                {
+                    ["entityDescriptor"] = entityDescriptor,
+                    ["Method"] = "Count",
+                    ["combinedStream"] = execArg.combinedStream,
+                }))
+            );
+
+
+            // Execute aggregation
+            using var cursor = dbContext.session == null ? collection.Aggregate<BsonDocument>(pipeline) : collection.Aggregate<BsonDocument>(dbContext.session, pipeline);
+
+            var doc = cursor.FirstOrDefault();
+
+            return doc?["count"].AsInt32 ?? 0;
+        }
     }
 }
