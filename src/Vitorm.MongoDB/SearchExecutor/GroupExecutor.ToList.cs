@@ -75,11 +75,14 @@ namespace Vitorm.MongoDB.SearchExecutor
                 }))
             );
 
+            if (arg.combinedStream.take == 0) return null;
+
             // Execute aggregation
             return dbContext.session == null ? collection.Aggregate<BsonDocument>(pipeline) : collection.Aggregate<BsonDocument>(dbContext.session, pipeline);
         }
         static IEnumerable<IGrouping<Key, Element>> ReadGroups<Key, Element>(DbContext dbContext, IEntityDescriptor entityDescriptor, IAsyncCursor<BsonDocument> cursor)
         {
+            if (cursor == null) yield break;
             while (cursor.MoveNext())
             {
                 foreach (BsonDocument document in cursor.Current)

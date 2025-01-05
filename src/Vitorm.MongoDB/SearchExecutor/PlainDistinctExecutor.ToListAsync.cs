@@ -1,9 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
+using System.Threading.Tasks;
 
 using MongoDB.Bson;
-using MongoDB.Driver;
 
 using Vitorm.MongoDB.QueryExecutor;
 using Vitorm.StreamQuery;
@@ -11,26 +10,19 @@ using Vitorm.StreamQuery;
 
 namespace Vitorm.MongoDB.SearchExecutor
 {
-    public partial class PlainDistinctSearchExecutor
+    public partial class PlainDistinctExecutor
     {
-
-        public List<ResultEntity> ToList<Entity, ResultEntity>(QueryExecutorArgument arg)
-        {
-            return ReadList<Entity, ResultEntity>(arg).ToList();
-        }
-
-        IEnumerable<ResultEntity> ReadList<Entity, ResultEntity>(QueryExecutorArgument arg)
+        public async Task<List<ResultEntity>> ToListAsync<Entity, ResultEntity>(QueryExecutorArgument arg)
         {
             CombinedStream combinedStream = arg.combinedStream;
             var dbContext = arg.dbContext;
             var entityDescriptor = dbContext.GetEntityDescriptor(typeof(Entity));
 
-
             var entityReader = new EntityReader.EntityReader();
             entityReader.Init(dbContext, typeof(Entity), combinedStream.select.fields);
 
+            var pipeline = GetPipeline(arg, entityReader);
 
-            var pipeline = GetPipeline<Entity, ResultEntity>(arg, entityReader);
 
             // Event_OnExecuting
             dbContext.Event_OnExecuting(new Lazy<ExecuteEventArgument>(() => new ExecuteEventArgument(
@@ -39,7 +31,7 @@ namespace Vitorm.MongoDB.SearchExecutor
                 extraParam: new()
                 {
                     ["entityDescriptor"] = entityDescriptor,
-                    ["Method"] = arg.combinedStream.method ?? "ToList",
+                    ["Method"] = arg.combinedStream.method ?? "ToListAsync",
                     ["combinedStream"] = combinedStream,
                 }))
             );
@@ -47,19 +39,23 @@ namespace Vitorm.MongoDB.SearchExecutor
 
             var database = dbContext.dbConfig.GetDatabase();
             var collection = database.GetCollection<BsonDocument>(entityDescriptor.tableName);
-            using var cursor = dbContext.session == null ? collection.Aggregate<BsonDocument>(pipeline) : collection.Aggregate<BsonDocument>(dbContext.session, pipeline);
+            using var cursor = dbContext.session == null ? await collection.AggregateAsync<BsonDocument>(pipeline) : await collection.AggregateAsync<BsonDocument>(dbContext.session, pipeline);
 
-            while (cursor.MoveNext())
+
+            var list = new List<ResultEntity>();
+            if (cursor != null)
             {
-                foreach (BsonDocument document in cursor.Current)
+                while (await cursor.MoveNextAsync())
                 {
-                    var group = document["_id"].AsBsonDocument;
-                    yield return (ResultEntity)entityReader.ReadEntity(group);
+                    foreach (BsonDocument document in cursor.Current)
+                    {
+                        var group = document["_id"].AsBsonDocument;
+                        list.Add((ResultEntity)entityReader.ReadEntity(group));
+                    }
                 }
             }
+            return list;
         }
-
-
 
     }
 }

@@ -268,7 +268,7 @@ namespace Vitorm.MongoDB.QueryExecutor
                     }
             }
 
-            throw new NotSupportedException("[TranslateService] not supported notType: " + node?.nodeType);
+            throw new NotSupportedException("[TranslateService] not supported nodeType: " + node?.nodeType);
         }
 
     }

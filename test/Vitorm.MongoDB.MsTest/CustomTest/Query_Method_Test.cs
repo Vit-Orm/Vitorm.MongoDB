@@ -70,6 +70,58 @@ namespace Vitorm.MsTest.CustomTest
         }
 
 
+        [TestMethod]
+        public void Count()
+        {
+            using var dbContext = DataSource.CreateDbContext();
+            var userQuery = dbContext.Query<User>();
+
+            // PlainQuery
+            {
+                var count = userQuery.OrderBy(m => m.fatherId).Select(m => new { fatherId = m.fatherId }).Count();
+                Assert.AreEqual(6, count);
+            }
+
+            // Group
+            {
+                var count = userQuery.GroupBy(m => m.fatherId).OrderBy(g => g.Key).Select(g => new { fatherId = g.Key }).Count();
+                Assert.AreEqual(3, count);
+            }
+
+            // PlainDistinctSearch
+            {
+                var count = userQuery.Select(m => new { fatherId = m.fatherId }).OrderBy(m => m.fatherId).Distinct().Count();
+                Assert.AreEqual(3, count);
+            }
+        }
+
+
+        [TestMethod]
+        public void ToExecuteString()
+        {
+            using var dbContext = DataSource.CreateDbContext();
+            var userQuery = dbContext.Query<User>();
+
+            // PlainQuery
+            {
+                var executeString = userQuery.OrderBy(m => m.fatherId).Select(m => new { fatherId = m.fatherId }).ToExecuteString();
+                Assert.IsNotNull(executeString);
+            }
+
+            // Group
+            {
+                var executeString = userQuery.GroupBy(m => m.fatherId).OrderBy(g => g.Key).Select(g => new { fatherId = g.Key }).ToExecuteString();
+                Assert.IsNotNull(executeString);
+            }
+
+            // PlainDistinctSearch
+            {
+                var executeString = userQuery.Select(m => new { fatherId = m.fatherId }).OrderBy(m => m.fatherId).Distinct().ToExecuteString();
+                Assert.IsNotNull(executeString);
+            }
+        }
+
+
 
     }
 }

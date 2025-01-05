@@ -85,9 +85,9 @@ namespace Vitorm.MongoDB
 
         #region SearchExecutor
         public static List<ISearchExecutor> defaultSearchExecutor = new() {
-            new PlainSearchExecutor(),
+            new PlainExecutor(),
             new GroupExecutor(),
-            new PlainDistinctSearchExecutor(),
+            new PlainDistinctExecutor(),
         };
         public List<ISearchExecutor> searchExecutor = defaultSearchExecutor;
 
@@ -102,25 +102,10 @@ namespace Vitorm.MongoDB
 
         public virtual BsonDocument Serialize(object entity, IEntityDescriptor entityDescriptor)
         {
-            return SerializeObject(entity, entityDescriptor.propertyType) as BsonDocument;
+            return Serialize(entity, entityDescriptor.propertyType) as BsonDocument;
         }
 
-        protected virtual BsonValue SerializeObject(object entity, IPropertyObjectType objectType)
-        {
-            if (entity == null) return BsonValue.Create(null);
-
-            var doc = new BsonDocument();
-
-            objectType.properties.ForEach(propertyDescriptor =>
-            {
-                var value = propertyDescriptor.GetValue(entity);
-                doc.Set(propertyDescriptor.columnName, SerializeProperty(value, propertyDescriptor.propertyType));
-            });
-
-            return doc;
-        }
-
-        protected virtual BsonValue SerializeProperty(object value, IPropertyType propertyType)
+        public virtual BsonValue Serialize(object value, IPropertyType propertyType)
         {
             switch (propertyType)
             {
@@ -131,15 +116,23 @@ namespace Vitorm.MongoDB
                         var bsonArray = new BsonArray();
                         foreach (var item in enumerable)
                         {
-                            bsonArray.Add(SerializeProperty(item, arrayType.elementPropertyType));
+                            bsonArray.Add(Serialize(item, arrayType.elementPropertyType));
                         }
                         return bsonArray;
                     }
                 case IPropertyObjectType objectType:
                     {
-                        if (value == null) break;
+                        var entity = value;
+                        if (entity == null) return BsonValue.Create(null);
 
-                        return SerializeObject(value, objectType);
+                        var doc = new BsonDocument();
+                        objectType.properties.ForEach(propertyDescriptor =>
+                        {
+                            var value = propertyDescriptor.GetValue(entity);
+                            doc.Set(propertyDescriptor.columnName, Serialize(value, propertyDescriptor.propertyType));
+                        });
+
+                        return doc;
                     }
                 case IPropertyValueType valueType:
                     {
@@ -155,31 +148,16 @@ namespace Vitorm.MongoDB
 
         public virtual Entity Deserialize<Entity>(BsonDocument doc, IEntityDescriptor entityDescriptor)
         {
-            return (Entity)Deserialize(doc, entityDescriptor);
+            return (Entity)Deserialize(doc, entityDescriptor.propertyType);
         }
 
         public virtual object Deserialize(BsonDocument doc, IEntityDescriptor entityDescriptor)
         {
-            return DeserializeObject(doc, entityDescriptor.entityType, entityDescriptor.properties);
-        }
-
-        protected virtual object DeserializeObject(BsonDocument doc, Type clrType, IPropertyDescriptor[] properties)
-        {
-            if (doc == null) return TypeUtil.GetDefaultValue(clrType);
-            var entity = Activator.CreateInstance(clrType);
-
-            properties.ForEach(propertyDescriptor =>
-            {
-                if (!doc.TryGetValue(propertyDescriptor.columnName, out var bsonValue)) return;
-                var propertyValue = DeserializeProperty(bsonValue, propertyDescriptor.propertyType);
-                propertyDescriptor.SetValue(entity, propertyValue);
-            });
-
-            return entity;
+            return Deserialize(doc, entityDescriptor.propertyType);
         }
 
 
-        protected virtual object DeserializeProperty(BsonValue bsonValue, IPropertyType propertyType)
+        public virtual object Deserialize(BsonValue bsonValue, IPropertyType propertyType)
         {
             switch (propertyType)
             {
@@ -188,7 +166,7 @@ namespace Vitorm.MongoDB
                         if (bsonValue?.BsonType != BsonType.Array) return null;
 
                         var bsonArray = bsonValue.AsBsonArray;
-                        var elements = bsonArray.Select(m => DeserializeProperty(m, arrayType.elementPropertyType));
+                        var elements = bsonArray.Select(m => Deserialize(m, arrayType.elementPropertyType));
                         return arrayType.CreateArray(elements);
                     }
                 case IPropertyObjectType objectType:
@@ -196,7 +174,19 @@ namespace Vitorm.MongoDB
                         if (bsonValue?.BsonType != BsonType.Document) return null;
 
                         var bsonDoc = bsonValue.AsBsonDocument;
-                        return DeserializeObject(bsonDoc, objectType.type, objectType.properties);
+                        var clrType = objectType.type;
+
+                        if (bsonDoc == null) return TypeUtil.GetDefaultValue(clrType);
+
+                        var entity = Activator.CreateInstance(clrType);
+                        objectType.properties?.ForEach(propertyDescriptor =>
+                        {
+                            if (!bsonDoc.TryGetValue(propertyDescriptor.columnName, out var bsonValue)) return;
+                            var propertyValue = Deserialize(bsonValue, propertyDescriptor.propertyType);
+                            propertyDescriptor.SetValue(entity, propertyValue);
+                        });
+
+                        return entity;
                     }
                 case IPropertyValueType valueType:
                     {

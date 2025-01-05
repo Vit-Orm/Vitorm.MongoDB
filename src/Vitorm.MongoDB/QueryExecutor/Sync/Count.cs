@@ -1,11 +1,6 @@
 ﻿using System;
 using System.Linq;
 
-using MongoDB.Bson;
-using MongoDB.Driver;
-
-using Vitorm.Entity;
-using Vitorm.MongoDB.SearchExecutor;
 using Vitorm.StreamQuery;
 
 namespace Vitorm.MongoDB.QueryExecutor
@@ -19,12 +14,12 @@ namespace Vitorm.MongoDB.QueryExecutor
 
         public string methodName => nameof(Queryable.Count);
 
-        public object ExecuteQuery(QueryExecutorArgument execArg)
+        public object ExecuteQuery(QueryExecutorArgument arg)
         {
-            using var _ = execArg;
+            using var _ = arg;
 
-            CombinedStream combinedStream = execArg.combinedStream;
-            var dbContext = execArg.dbContext;
+            CombinedStream combinedStream = arg.combinedStream;
+            var dbContext = arg.dbContext;
             IQueryable query = null;
             if (combinedStream.source is SourceStream sourceStream)
             {
@@ -35,45 +30,15 @@ namespace Vitorm.MongoDB.QueryExecutor
                 query = (baseStream.source as SourceStream)?.GetSource() as IQueryable;
             }
 
-            var queryEntityType = query?.ElementType;
-            var entityDescriptor = dbContext.GetEntityDescriptor(queryEntityType);
+            var skipAndTake = (combinedStream.skip, combinedStream.take);
+            (combinedStream.skip, combinedStream.take) = (null, null);
 
+            var entityType = query?.ElementType;
 
-            if (execArg.combinedStream.isGroupedStream) return ExecuteGroup(execArg, entityDescriptor);
-
-            return ExecutePlain(execArg, entityDescriptor);
-        }
-
-
-        public static int ExecutePlain(QueryExecutorArgument execArg, IEntityDescriptor entityDescriptor)
-        {
-            CombinedStream combinedStream = execArg.combinedStream;
-            var dbContext = execArg.dbContext;
-            var translateService = dbContext.translateService;
-
-            // #2 filter
-            var filter = translateService.TranslateFilter(execArg, combinedStream);
-
-
-
-            // Event_OnExecuting
-            dbContext.Event_OnExecuting(new Lazy<ExecuteEventArgument>(() => new ExecuteEventArgument(
-                dbContext: dbContext,
-                executeString: filter.ToJson(),
-                extraParam: new()
-                {
-                    ["entityDescriptor"] = entityDescriptor,
-                    ["Method"] = "Count",
-                    ["combinedStream"] = combinedStream,
-                }))
-            );
-
-
-            // #3 execute query
-            var database = dbContext.dbConfig.GetDatabase();
-            var collection = database.GetCollection<BsonDocument>(entityDescriptor.tableName);
-            var count = (int)collection.CountDocuments(filter);
-
+            var executor = arg.dbContext.GetSearchExecutor(arg);
+            if (executor == null) throw new NotImplementedException();
+            var count = executor.Count(arg, entityType);
+            (combinedStream.skip, combinedStream.take) = skipAndTake;
 
             // Count and TotalCount
             if (count > 0 && combinedStream.method == nameof(Queryable.Count))
@@ -88,35 +53,8 @@ namespace Vitorm.MongoDB.QueryExecutor
         }
 
 
-        public static int ExecuteGroup(QueryExecutorArgument execArg, IEntityDescriptor entityDescriptor)
-        {
-            var dbContext = execArg.dbContext;
-            var database = dbContext.dbConfig.GetDatabase();
-            var collection = database.GetCollection<BsonDocument>(entityDescriptor.tableName);
-
-            var pipeline = GroupExecutor.GetPipeline(execArg);
-            pipeline = pipeline.Concat(new[] { new BsonDocument("$count", "count") }).ToArray();
 
 
-            // Event_OnExecuting
-            dbContext.Event_OnExecuting(new Lazy<ExecuteEventArgument>(() => new ExecuteEventArgument(
-                dbContext: dbContext,
-                executeString: pipeline.ToJson(),
-                extraParam: new()
-                {
-                    ["entityDescriptor"] = entityDescriptor,
-                    ["Method"] = "Count",
-                    ["combinedStream"] = execArg.combinedStream,
-                }))
-            );
 
-
-            // Execute aggregation
-            using var cursor = dbContext.session == null ? collection.Aggregate<BsonDocument>(pipeline) : collection.Aggregate<BsonDocument>(dbContext.session, pipeline);
-
-            var doc = cursor.FirstOrDefault();
-
-            return doc?["count"].AsInt32 ?? 0;
-        }
     }
 }

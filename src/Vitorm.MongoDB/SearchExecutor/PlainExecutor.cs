@@ -11,7 +11,7 @@ using Vitorm.StreamQuery;
 
 namespace Vitorm.MongoDB.SearchExecutor
 {
-    public partial class PlainSearchExecutor : ISearchExecutor
+    public partial class PlainExecutor : ISearchExecutor
     {
         public virtual bool IsMatch(QueryExecutorArgument arg)
         {
@@ -36,6 +36,8 @@ namespace Vitorm.MongoDB.SearchExecutor
             CombinedStream combinedStream = arg.combinedStream;
             var dbContext = arg.dbContext;
             var translateService = dbContext.translateService;
+
+
 
             // #2 filter
             var filter = translateService.TranslateFilter(arg, combinedStream);
@@ -66,6 +68,7 @@ namespace Vitorm.MongoDB.SearchExecutor
                 }))
             );
 
+            if (combinedStream.take == 0) return null;
 
             // #5 execute query
             var database = dbContext.dbConfig.GetDatabase();

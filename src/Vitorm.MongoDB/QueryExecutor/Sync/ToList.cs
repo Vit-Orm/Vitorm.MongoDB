@@ -47,7 +47,9 @@ namespace Vitorm.MongoDB.QueryExecutor
 
         public static List<ResultEntity> Execute<Entity, ResultEntity>(QueryExecutorArgument arg)
         {
-            return arg.dbContext.GetSearchExecutor(arg)?.ToList<Entity, ResultEntity>(arg);
+            var executor = arg.dbContext.GetSearchExecutor(arg);
+            if (executor == null) throw new NotImplementedException();
+            return executor.ToList<Entity, ResultEntity>(arg);
         }
 
 

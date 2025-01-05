@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading.Tasks;
 
 using MongoDB.Bson;
 using MongoDB.Driver;
@@ -13,10 +12,10 @@ using Vitorm.StreamQuery;
 
 namespace Vitorm.MongoDB.SearchExecutor
 {
-    public partial class PlainSearchExecutor : ISearchExecutor
+    public partial class PlainExecutor : ISearchExecutor
     {
 
-        public async Task<List<ResultEntity>> ToListAsync<Entity, ResultEntity>(QueryExecutorArgument arg)
+        public List<ResultEntity> ToList<Entity, ResultEntity>(QueryExecutorArgument arg)
         {
             CombinedStream combinedStream = arg.combinedStream;
             var dbContext = arg.dbContext;
@@ -27,39 +26,41 @@ namespace Vitorm.MongoDB.SearchExecutor
 
             List<ResultEntity> result;
 
-            using var cursor = await fluent.ToCursorAsync();
+            using var cursor = fluent?.ToCursor();
             if (combinedStream.select?.resultSelector != null)
             {
                 // Select
                 var lambdaExp = combinedStream.select.resultSelector.Lambda_GetLambdaExpression();
 
-                var delSelect = lambdaExp.Compile() as Func<Entity, ResultEntity>;
+                var delSelect = (Func<Entity, ResultEntity>)lambdaExp.Compile();
+                Type resultEntityType = typeof(ResultEntity);
 
-                var entities = await ReadListAsync<Entity>(dbContext, entityDescriptor, cursor);
+                var entities = ReadList<Entity>(dbContext, entityDescriptor, cursor);
+
                 result = entities.Select(delSelect).ToList();
             }
             else
             {
-                result = await ReadListAsync<ResultEntity>(dbContext, entityDescriptor, cursor);
+                var entities = ReadList<ResultEntity>(dbContext, entityDescriptor, cursor);
+                result = entities.ToList();
             }
 
             return result;
         }
 
-        static async Task<List<Entity>> ReadListAsync<Entity>(DbContext dbContext, IEntityDescriptor entityDescriptor, IAsyncCursor<BsonDocument> cursor)
+        public static IEnumerable<Entity> ReadList<Entity>(DbContext dbContext, IEntityDescriptor entityDescriptor, IAsyncCursor<BsonDocument> cursor)
         {
-            var list = new List<Entity>();
-            while (await cursor.MoveNextAsync())
+            if (cursor == null) yield break;
+
+            while (cursor.MoveNext())
             {
-                foreach (BsonDocument document in cursor.Current)
+                IEnumerable<BsonDocument> batch = cursor.Current;
+                foreach (BsonDocument document in batch)
                 {
-                    var entity = dbContext.Deserialize<Entity>(document, entityDescriptor);
-                    list.Add(entity);
+                    yield return dbContext.Deserialize<Entity>(document, entityDescriptor);
                 }
             }
-            return list;
         }
-
 
     }
 }

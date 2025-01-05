@@ -12,8 +12,9 @@ using static Vitorm.MongoDB.SearchExecutor.GroupExecutor;
 
 namespace Vitorm.MongoDB.SearchExecutor
 {
-    public partial class PlainDistinctSearchExecutor : ISearchExecutor
+    public partial class PlainDistinctExecutor : ISearchExecutor
     {
+
         public virtual bool IsMatch(QueryExecutorArgument arg)
         {
             CombinedStream combinedStream = arg.combinedStream;
@@ -31,7 +32,7 @@ namespace Vitorm.MongoDB.SearchExecutor
 
 
 
-        public static BsonDocument[] GetPipeline<Entity, ResultEntity>(QueryExecutorArgument arg, EntityReader.EntityReader entityReader)
+        public static BsonDocument[] GetPipeline(QueryExecutorArgument arg, EntityReader.EntityReader entityReader)
         {
             // #1
             CombinedStream combinedStream = arg.combinedStream;

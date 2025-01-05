@@ -76,6 +76,8 @@ namespace Vitorm.MongoDB.SearchExecutor
                 }))
             );
 
+            if (arg.combinedStream.take == 0) return null;
+
             // Execute aggregation
             return dbContext.session == null ? collection.AggregateAsync<BsonDocument>(pipeline) : collection.AggregateAsync<BsonDocument>(dbContext.session, pipeline);
         }
@@ -83,6 +85,8 @@ namespace Vitorm.MongoDB.SearchExecutor
         static async Task<List<ResultEntity>> ReadListAsync<Entity, ResultEntity, Key>(DbContext dbContext, IEntityDescriptor entityDescriptor, IAsyncCursor<BsonDocument> cursor, Func<IGrouping<Key, Entity>, ResultEntity> Select)
         {
             List<ResultEntity> list = new();
+            if (cursor == null) return list;
+
             while (await cursor.MoveNextAsync())
             {
                 foreach (BsonDocument document in cursor.Current)

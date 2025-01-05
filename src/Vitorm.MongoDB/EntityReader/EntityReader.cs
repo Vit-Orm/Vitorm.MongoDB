@@ -8,6 +8,9 @@ using MongoDB.Bson;
 using Vit.Linq.ExpressionNodes;
 using Vit.Linq.ExpressionNodes.ComponentModel;
 
+using Vitorm.Entity.PropertyType;
+using Vitorm.MongoDB.QueryExecutor;
+
 namespace Vitorm.MongoDB.EntityReader
 {
     /// <summary>
@@ -72,7 +75,7 @@ namespace Vitorm.MongoDB.EntityReader
 
         protected string GetArgument(DbContext dbContext, ExpressionNode_Member member)
         {
-            var fieldPath = dbContext.translateService.GetFieldPath(new() { dbContext = dbContext }, (ExpressionNode)member);
+            var fieldPath = QueryExecutorArgument.GetFieldPath(dbContext, (ExpressionNode)member, out Type t);
 
             IArgReader argReader = entityArgReaders.FirstOrDefault(reader => reader.fieldPath == fieldPath);
 
@@ -91,9 +94,9 @@ namespace Vitorm.MongoDB.EntityReader
                 else
                 {
                     // Entity arg
-                    //var entityDescriptor = config.queryTranslateArgument.dbContext.GetEntityDescriptor(argType);
+                    var fieldPath2 = QueryExecutorArgument.GetFieldPath(dbContext, (ExpressionNode)member, out IPropertyType propertyType);
 
-                    //argReader = new ModelReader(config.sqlColumns, config.sqlTranslateService, tableName, argUniqueKey, argName, entityDescriptor);
+                    argReader = new ModelReader(dbContext, propertyType, argType, fieldPath ?? "$ROOT", argName);
                 }
                 entityArgReaders.Add(argReader);
             }
