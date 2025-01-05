@@ -2,7 +2,6 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading.Tasks;
 
 using MongoDB.Bson;
 using MongoDB.Driver;
@@ -88,26 +87,13 @@ namespace Vitorm.MongoDB
         public static List<ISearchExecutor> defaultSearchExecutor = new() {
             new PlainSearchExecutor(),
             new GroupExecutor(),
+            new PlainDistinctSearchExecutor(),
         };
         public List<ISearchExecutor> searchExecutor = defaultSearchExecutor;
 
-        public virtual async Task<bool> ExecuteSearchAsync<Entity, ResultEntity>(SearchExecutorArgument<ResultEntity> arg)
+        public virtual ISearchExecutor GetSearchExecutor(QueryExecutorArgument arg)
         {
-            foreach (var executor in searchExecutor)
-            {
-                var success = await executor.ExecuteSearchAsync<Entity, ResultEntity>(arg);
-                if (success) return true;
-            }
-            throw new NotSupportedException("not supported Search");
-        }
-        public virtual bool ExecuteSearch<Entity, ResultEntity>(SearchExecutorArgument<ResultEntity> arg)
-        {
-            foreach (var executor in searchExecutor)
-            {
-                var success = executor.ExecuteSearch<Entity, ResultEntity>(arg);
-                if (success) return true;
-            }
-            throw new NotSupportedException("not supported Search");
+            return searchExecutor.FirstOrDefault(m => m.IsMatch(arg));
         }
         #endregion
 

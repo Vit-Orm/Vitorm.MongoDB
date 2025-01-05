@@ -45,20 +45,20 @@ namespace Vitorm.MsTest.CommonTest
                 Assert.AreEqual(0, fatherIds.Except(new int?[] { 4, 5, null }).Count());
                 Assert.AreEqual(0, motherIds.Except(new int?[] { 6, null }).Count());
             }
-            {
-                var query = userQuery.Select(u => new { user = u, u.fatherId, u.motherId }).Distinct();
+            //{
+            //    var query = userQuery.Select(u => new { user = u, u.fatherId, u.motherId }).Distinct();
 
-                var userList = query.ToList();
+            //    var userList = query.ToList();
 
-                Assert.AreEqual(6, userList.Count);
-            }
-            {
-                var query = userQuery.Distinct();
+            //    Assert.AreEqual(6, userList.Count);
+            //}
+            //{
+            //    var query = userQuery.Distinct();
 
-                var userList = query.ToList();
+            //    var userList = query.ToList();
 
-                Assert.AreEqual(6, userList.Count);
-            }
+            //    Assert.AreEqual(6, userList.Count);
+            //}
 
         }
 

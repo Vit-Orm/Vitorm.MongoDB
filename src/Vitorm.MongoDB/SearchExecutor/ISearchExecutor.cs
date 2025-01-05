@@ -1,11 +1,18 @@
-﻿using System.Threading.Tasks;
+﻿using System.Collections.Generic;
+using System.Threading.Tasks;
+
+using Vitorm.MongoDB.QueryExecutor;
 
 namespace Vitorm.MongoDB.SearchExecutor
 {
     public interface ISearchExecutor
     {
-        Task<bool> ExecuteSearchAsync<Entity, ResultEntity>(SearchExecutorArgument<ResultEntity> arg);
+        bool IsMatch(QueryExecutorArgument arg);
+        List<ResultEntity> ToList<Entity, ResultEntity>(QueryExecutorArgument arg);
 
-        bool ExecuteSearch<Entity, ResultEntity>(SearchExecutorArgument<ResultEntity> arg);
+        Task<List<ResultEntity>> ToListAsync<Entity, ResultEntity>(QueryExecutorArgument arg);
+
+
+
     }
 }

@@ -8,7 +8,6 @@ using MongoDB.Driver;
 
 using Vit.Linq;
 
-using Vitorm.MongoDB.SearchExecutor;
 using Vitorm.StreamQuery;
 
 namespace Vitorm.MongoDB.QueryExecutor
@@ -49,19 +48,9 @@ namespace Vitorm.MongoDB.QueryExecutor
             .MakeGenericMethod(entityType, resultEntityType);
 
 
-
-        public static async Task<List<ResultEntity>> Execute<Entity, ResultEntity>(QueryExecutorArgument execArg)
+        public static Task<List<ResultEntity>> Execute<Entity, ResultEntity>(QueryExecutorArgument arg)
         {
-            var combinedStream = execArg.combinedStream;
-            var dbContext = execArg.dbContext;
-
-            var searchArg = new SearchExecutorArgument<ResultEntity> { execArg = execArg };
-            searchArg.getList = true;
-            searchArg.getTotalCount = false;
-
-            await dbContext.ExecuteSearchAsync<Entity, ResultEntity>(searchArg);
-
-            return searchArg.list;
+            return arg.dbContext.GetSearchExecutor(arg)?.ToListAsync<Entity, ResultEntity>(arg);
         }
 
 

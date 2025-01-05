@@ -94,7 +94,7 @@ namespace Vitorm.MongoDB.QueryExecutor
             var database = dbContext.dbConfig.GetDatabase();
             var collection = database.GetCollection<BsonDocument>(entityDescriptor.tableName);
 
-            var pipeline = GroupExecutor.GetAggregatePipeline(execArg);
+            var pipeline = GroupExecutor.GetPipeline(execArg);
             pipeline = pipeline.Concat(new[] { new BsonDocument("$count", "count") }).ToArray();
 
 
