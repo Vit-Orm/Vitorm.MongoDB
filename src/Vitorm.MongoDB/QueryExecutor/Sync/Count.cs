@@ -16,10 +16,8 @@ namespace Vitorm.MongoDB.QueryExecutor
 
         public object ExecuteQuery(QueryExecutorArgument arg)
         {
-            using var _ = arg;
-
             CombinedStream combinedStream = arg.combinedStream;
-            var dbContext = arg.dbContext;
+
             IQueryable query = null;
             if (combinedStream.source is SourceStream sourceStream)
             {

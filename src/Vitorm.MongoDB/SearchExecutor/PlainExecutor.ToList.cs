@@ -12,9 +12,8 @@ using Vitorm.StreamQuery;
 
 namespace Vitorm.MongoDB.SearchExecutor
 {
-    public partial class PlainExecutor : ISearchExecutor
+    public partial class PlainExecutor
     {
-
         public List<ResultEntity> ToList<Entity, ResultEntity>(QueryExecutorArgument arg)
         {
             CombinedStream combinedStream = arg.combinedStream;
@@ -31,13 +30,11 @@ namespace Vitorm.MongoDB.SearchExecutor
             {
                 // Select
                 var lambdaExp = combinedStream.select.resultSelector.Lambda_GetLambdaExpression();
-
                 var delSelect = (Func<Entity, ResultEntity>)lambdaExp.Compile();
-                Type resultEntityType = typeof(ResultEntity);
 
-                var entities = ReadList<Entity>(dbContext, entityDescriptor, cursor);
+                var entities = ReadList<Entity>(dbContext, entityDescriptor, cursor).Select(delSelect);
 
-                result = entities.Select(delSelect).ToList();
+                result = entities.ToList();
             }
             else
             {

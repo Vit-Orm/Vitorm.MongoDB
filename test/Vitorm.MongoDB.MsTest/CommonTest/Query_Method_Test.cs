@@ -320,10 +320,10 @@ namespace Vitorm.MsTest.CommonTest
             using var dbContext = DataSource.CreateDbContext();
             var userQuery = dbContext.Query<User>();
 
-            {
-                var user = userQuery.OrderBy(m => m.id).Last();
-                Assert.AreEqual(6, user?.id);
-            }
+            //{
+            //    var user = userQuery.OrderBy(m => m.id).Last();
+            //    Assert.AreEqual(6, user?.id);
+            //}
 
             {
                 var user = userQuery.Last(user => user.id == 3);

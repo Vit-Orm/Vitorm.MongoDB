@@ -13,18 +13,12 @@ namespace Vitorm.MongoDB.QueryExecutor
 
         public object ExecuteQuery(QueryExecutorArgument arg)
         {
-            using var _ = arg;
-
-            CombinedStream combinedStream = arg.combinedStream;
-            var dbContext = arg.dbContext;
-            var translateService = dbContext.translateService;
-
             IQueryable query = null;
-            if (combinedStream.source is SourceStream sourceStream)
+            if (arg.combinedStream.source is SourceStream sourceStream)
             {
                 query = sourceStream.GetSource() as IQueryable;
             }
-            else if (combinedStream.source is CombinedStream baseStream)
+            else if (arg.combinedStream.source is CombinedStream baseStream)
             {
                 query = (baseStream.source as SourceStream)?.GetSource() as IQueryable;
             }

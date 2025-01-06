@@ -4,7 +4,6 @@ using MongoDB.Bson;
 
 namespace Vitorm.MongoDB.EntityReader
 {
-
     class ValueReader : IArgReader
     {
         public string argName { get; set; }

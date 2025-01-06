@@ -14,5 +14,7 @@ namespace Vitorm.MongoDB.SearchExecutor
         Task<List<ResultEntity>> ToListAsync<Entity, ResultEntity>(QueryExecutorArgument arg);
         int Count(QueryExecutorArgument arg, Type entityType);
         string ToExecuteString(QueryExecutorArgument arg, Type entityType);
+
+        ResultEntity FirstOrDefault<Entity, ResultEntity>(QueryExecutorArgument arg);
     }
 }

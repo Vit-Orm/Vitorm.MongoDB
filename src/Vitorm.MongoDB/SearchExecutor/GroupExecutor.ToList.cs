@@ -92,13 +92,5 @@ namespace Vitorm.MongoDB.SearchExecutor
             }
         }
 
-
-
-
-
-
-
-
-
     }
 }

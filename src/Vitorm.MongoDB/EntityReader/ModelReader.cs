@@ -6,7 +6,6 @@ using Vitorm.Entity.PropertyType;
 
 namespace Vitorm.MongoDB.EntityReader
 {
-
     class ModelReader : IArgReader
     {
         public string argName { get; set; }

@@ -17,22 +17,22 @@ namespace Vitorm.MongoDB.QueryExecutor
 
 
 
-        public object ExecuteQuery(QueryExecutorArgument execArg)
+        public object ExecuteQuery(QueryExecutorArgument arg)
         {
             IQueryable query = null;
-            if (execArg.combinedStream.source is SourceStream sourceStream)
+            if (arg.combinedStream.source is SourceStream sourceStream)
             {
                 query = sourceStream.GetSource() as IQueryable;
             }
-            else if (execArg.combinedStream.source is CombinedStream baseStream)
+            else if (arg.combinedStream.source is CombinedStream baseStream)
             {
                 query = (baseStream.source as SourceStream)?.GetSource() as IQueryable;
             }
 
             var entityType = query?.ElementType;
-            var resultEntityType = execArg.expression.Type.GetGenericArguments().First();
+            var resultEntityType = arg.expression.Type.GetGenericArguments().First();
 
-            return Execute_MethodInfo(entityType, resultEntityType).Invoke(null, new object[] { execArg });
+            return Execute_MethodInfo(entityType, resultEntityType).Invoke(null, new object[] { arg });
         }
 
 

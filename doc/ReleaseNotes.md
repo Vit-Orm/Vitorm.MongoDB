@@ -7,4 +7,7 @@
 - support group query
 - support PlainDistinctSearch
 - support Count
+- support ToListAsync
+- support ToExecuteString
+- support FirstOrDefault
 

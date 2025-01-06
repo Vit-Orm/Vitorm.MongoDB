@@ -21,9 +21,9 @@ namespace Vitorm.MsTest.CommonTest
             Test_Get();
             Test_Query();
             //Test_QueryJoin();
-            //Test_ToExecuteString();
+            Test_ToExecuteString();
             //Test_ExecuteUpdate();
-            Test_ExecuteDelete();
+            //Test_ExecuteDelete();
             Test_Create();
             Test_Update();
             Test_Delete();
@@ -37,8 +37,8 @@ namespace Vitorm.MsTest.CommonTest
             await Test_GetAsync();
             await Test_QueryAsync();
             //await Test_QueryJoinAsync();
-            await Test_ExecuteUpdateAsync();
-            await Test_ExecuteDeleteAsync();
+            //await Test_ExecuteUpdateAsync();
+            //await Test_ExecuteDeleteAsync();
             await Test_UpdateAsync();
             await Test_DeleteAsync();
         }

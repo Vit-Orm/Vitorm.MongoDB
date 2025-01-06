@@ -18,27 +18,23 @@ namespace Vitorm.MongoDB.QueryExecutor
 
         public string methodName => nameof(Queryable_Extensions.ToListAsync);
 
-        public object ExecuteQuery(QueryExecutorArgument execArg)
+        public object ExecuteQuery(QueryExecutorArgument arg)
         {
-            // #1
-            CombinedStream combinedStream = execArg.combinedStream;
-            var dbContext = execArg.dbContext;
-
 
             IQueryable query = null;
-            if (combinedStream.source is SourceStream sourceStream)
+            if (arg.combinedStream.source is SourceStream sourceStream)
             {
                 query = sourceStream.GetSource() as IQueryable;
             }
-            else if (combinedStream.source is CombinedStream baseStream)
+            else if (arg.combinedStream.source is CombinedStream baseStream)
             {
                 query = (baseStream.source as SourceStream)?.GetSource() as IQueryable;
             }
 
             var entityType = query.ElementType;
-            var resultEntityType = execArg.expression.Type.GetGenericArguments().First().GetGenericArguments().First();
+            var resultEntityType = arg.expression.Type.GetGenericArguments().First().GetGenericArguments().First();
 
-            return Execute_MethodInfo(entityType, resultEntityType).Invoke(null, new object[] { execArg });
+            return Execute_MethodInfo(entityType, resultEntityType).Invoke(null, new object[] { arg });
         }
 
 

@@ -32,8 +32,6 @@ namespace Vitorm.MongoDB.SearchExecutor
             return true;
         }
 
-
-
         public static BsonDocument[] GetPipeline(QueryExecutorArgument arg)
         {
             CombinedStream combinedStream = arg.combinedStream;

@@ -9,7 +9,7 @@ using Vitorm.StreamQuery;
 
 namespace Vitorm.MongoDB.QueryExecutor
 {
-    public class QueryExecutorArgument : IDisposable
+    public partial class QueryExecutorArgument
     {
         public CombinedStream combinedStream;
         public DbContext dbContext;
@@ -17,12 +17,7 @@ namespace Vitorm.MongoDB.QueryExecutor
         public Expression expression;
         public Type expressionResultType;
 
-        public Action dispose;
 
-        public void Dispose()
-        {
-            dispose?.Invoke();
-        }
         public virtual string GetFieldPath(ExpressionNode member) => GetFieldPath(this.dbContext, member, out Type propertyType);
 
         public static string GetFieldPath(DbContext dbContext, ExpressionNode member, out Type propertyType)
@@ -36,9 +31,8 @@ namespace Vitorm.MongoDB.QueryExecutor
                             // nested field
                             var parentPath = GetFieldPath(dbContext, member.objectValue, out Type parentPropertyType);
 
-                            var memberType = member.objectValue.Member_GetType();
                             // bool?.Value
-                            if (member.memberName == nameof(Nullable<bool>.Value) && TypeUtil.IsNullable(memberType))
+                            if (member.memberName == nameof(Nullable<bool>.Value) && TypeUtil.IsNullable(parentPropertyType))
                             {
                                 propertyType = parentPropertyType;
                                 return parentPath;
@@ -140,9 +134,8 @@ namespace Vitorm.MongoDB.QueryExecutor
                             // nested field
                             var parentPath = GetFieldPath(dbContext, member.objectValue, out IPropertyType parentPropertyType);
 
-                            var memberType = member.objectValue.Member_GetType();
                             // bool?.Value
-                            if (member.memberName == nameof(Nullable<bool>.Value) && TypeUtil.IsNullable(memberType))
+                            if (member.memberName == nameof(Nullable<bool>.Value) && TypeUtil.IsNullable(parentPropertyType.type))
                             {
                                 propertyType = parentPropertyType;
                                 return parentPath;

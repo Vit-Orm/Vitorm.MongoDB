@@ -19,21 +19,6 @@ namespace Vitorm.MongoDB
             return QueryableBuilder.Build<Entity>(QueryExecutor, DbContext.dbConfig.dbGroupName);
         }
 
-        protected object QueryExecutor(Expression expression, Type expressionResultType)
-        {
-            object result = null;
-            Action dispose = null;
-            try
-            {
-                return result = ExecuteQuery(expression, expressionResultType, dispose);
-            }
-            catch
-            {
-                dispose?.Invoke();
-                throw;
-            }
-        }
-
 
         #region QueryExecutor
 
@@ -114,7 +99,7 @@ namespace Vitorm.MongoDB
             return false;
         }
 
-        protected virtual object ExecuteQuery(Expression expression, Type expressionResultType, Action dispose)
+        protected virtual object QueryExecutor(Expression expression, Type expressionResultType)
         {
             // #1 convert to ExpressionNode 
             ExpressionNode_Lambda node = DbContext.convertService.ConvertToData_LambdaNode(expression, autoReduce: true, isArgument: QueryIsFromSameDb);
@@ -133,7 +118,6 @@ namespace Vitorm.MongoDB
                 dbContext = DbContext,
                 expression = expression,
                 expressionResultType = expressionResultType,
-                dispose = dispose,
             };
 
 

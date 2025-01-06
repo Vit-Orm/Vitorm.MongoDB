@@ -123,5 +123,57 @@ namespace Vitorm.MsTest.CustomTest
 
 
 
+        [TestMethod]
+        public void FirstOrDefault()
+        {
+            using var dbContext = DataSource.CreateDbContext();
+            var userQuery = dbContext.Query<User>();
+
+            // PlainQuery
+            {
+                var item = userQuery.Where(m => m.fatherId != null).OrderBy(m => m.fatherId).Select(m => new { fatherId = m.fatherId }).FirstOrDefault();
+                Assert.AreEqual(4, item.fatherId);
+            }
+
+            // Group
+            {
+                var item = userQuery.Where(m => m.fatherId != null).GroupBy(m => m.fatherId).OrderBy(g => g.Key).Select(g => new { fatherId = g.Key }).FirstOrDefault();
+                Assert.AreEqual(4, item.fatherId);
+            }
+
+            // PlainDistinctSearch
+            {
+                var item = userQuery.Where(m => m.fatherId != null).Select(m => new { fatherId = m.fatherId }).OrderBy(m => m.fatherId).Distinct().FirstOrDefault();
+                Assert.AreEqual(4, item.fatherId);
+            }
+        }
+
+
+        [TestMethod]
+        public void LastOrDefault()
+        {
+            using var dbContext = DataSource.CreateDbContext();
+            var userQuery = dbContext.Query<User>();
+
+            // PlainQuery
+            {
+                var item = userQuery.Where(m => m.fatherId != null).OrderBy(m => m.fatherId).Select(m => new { fatherId = m.fatherId }).LastOrDefault();
+                Assert.AreEqual(5, item.fatherId);
+            }
+
+            // Group
+            {
+                var item = userQuery.Where(m => m.fatherId != null).GroupBy(m => m.fatherId).OrderBy(g => g.Key).Select(g => new { fatherId = g.Key }).LastOrDefault();
+                Assert.AreEqual(5, item.fatherId);
+            }
+
+            // PlainDistinctSearch
+            {
+                var item = userQuery.Where(m => m.fatherId != null).Select(m => new { fatherId = m.fatherId }).OrderBy(m => m.fatherId).Distinct().LastOrDefault();
+                Assert.AreEqual(5, item.fatherId);
+            }
+        }
+
+
     }
 }

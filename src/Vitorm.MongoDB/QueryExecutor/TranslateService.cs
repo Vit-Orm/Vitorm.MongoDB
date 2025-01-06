@@ -8,17 +8,14 @@ using MongoDB.Bson;
 
 using Vit.Linq.ExpressionNodes.ComponentModel;
 
-using Vitorm.StreamQuery;
-
 namespace Vitorm.MongoDB.QueryExecutor
 {
     public class TranslateService
     {
-        public virtual BsonDocument TranslateFilter(QueryExecutorArgument arg, CombinedStream combinedStream)
+        public virtual BsonDocument TranslateFilter(QueryExecutorArgument arg)
         {
-            if (combinedStream?.where == null) return new();
-
-            return TranslateFilter(arg, combinedStream.where);
+            if (arg?.combinedStream?.where == null) return new();
+            return TranslateFilter(arg, arg.combinedStream.where);
         }
 
 

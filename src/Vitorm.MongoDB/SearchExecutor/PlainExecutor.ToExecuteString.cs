@@ -19,7 +19,7 @@ namespace Vitorm.MongoDB.SearchExecutor
 
 
             // #2 filter
-            var filter = translateService.TranslateFilter(arg, combinedStream);
+            var filter = translateService.TranslateFilter(arg);
 
 
             // #3 sortDoc
