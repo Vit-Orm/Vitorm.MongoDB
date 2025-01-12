@@ -2,115 +2,27 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.RegularExpressions;
 
 using MongoDB.Bson;
 
 using Vit.Linq.ExpressionNodes.ComponentModel;
 
-using Vitorm.Entity.PropertyType;
-using Vitorm.StreamQuery;
-
 namespace Vitorm.MongoDB.QueryExecutor
 {
     public class TranslateService
     {
-        public virtual BsonDocument TranslateQuery(QueryExecutorArgument arg, CombinedStream combinedStream)
+        public virtual BsonDocument TranslateFilter(QueryExecutorArgument arg)
         {
-            if (combinedStream?.where == null) return new();
-
-            return EvalExpression(arg, combinedStream.where);
+            if (arg?.combinedStream?.where == null) return new();
+            return TranslateFilter(arg, arg.combinedStream.where);
         }
 
 
-        public virtual string GetFieldPath(QueryExecutorArgument arg, ExpressionNode member, out IPropertyType propertyType)
-        {
-            switch (member?.nodeType)
-            {
-                case NodeType.Member:
-                    {
-                        if (member.objectValue == null)
-                        {
-                            // entity root
-                            var entityType = member.Member_GetType();
-                            var entityDescriptor = arg.dbContext.GetEntityDescriptor(entityType);
-                            propertyType = entityDescriptor.propertyType;
 
-                            if (string.IsNullOrWhiteSpace(member.memberName)) return null;
-                            break;
-                        }
-                        else
-                        {
-                            // nested field
-                            var parentPath = GetFieldPath(arg, member.objectValue, out var parentPropertyType);
-
-                            if (!string.IsNullOrWhiteSpace(member.memberName) && parentPropertyType is IPropertyObjectType parentObjectType)
-                            {
-                                var propertyDescriptor = parentObjectType.properties?.FirstOrDefault(property => property.propertyName == member.memberName);
-
-                                if (propertyDescriptor != null)
-                                {
-                                    propertyType = propertyDescriptor.propertyType;
-
-                                    var columnName = propertyDescriptor.columnName;
-
-                                    var fieldPath = columnName;
-                                    if (parentPath != null) fieldPath = parentPath + "." + fieldPath;
-                                    return fieldPath;
-                                }
-                            }
-                            break;
-                        }
-                    }
-                case NodeType.ArrayIndex:
-                    {
-                        ExpressionNode_ArrayIndex arrayIndex = member;
-
-                        var index = arrayIndex.right.value;
-                        var parentPath = GetFieldPath(arg, arrayIndex.left, out var parentPropertyType);
-
-                        if (parentPropertyType is IPropertyArrayType arrayType)
-                        {
-                            propertyType = arrayType.elementPropertyType;
-
-                            var filePath = $"{index}";
-                            if (parentPath != null) filePath = parentPath + "." + filePath;
-                            return filePath;
-                        }
-                        break;
-                    }
-
-                case NodeType.MethodCall:
-                    {
-                        ExpressionNode_MethodCall methodCall = member;
-
-                        switch (methodCall.methodName)
-                        {
-                            // ##1 List.get_Item
-                            case "get_Item" when methodCall.@object is not null && methodCall.arguments.Length == 1:
-                                {
-                                    var index = methodCall.arguments[0]?.value;
-                                    var parentPath = GetFieldPath(arg, methodCall.@object, out var parentPropertyType);
-
-                                    if (parentPropertyType is IPropertyArrayType arrayType)
-                                    {
-                                        propertyType = arrayType?.elementPropertyType;
-
-                                        var filePath = $"{index}";
-                                        if (parentPath != null) filePath = parentPath + "." + filePath;
-                                        return filePath;
-                                    }
-                                    break;
-                                }
-                        }
-                        break;
-                    }
-            }
-
-            throw new InvalidOperationException($"Can not get fieldPath from member:{member?.nodeType}");
-        }
         public virtual string GetFieldPath(QueryExecutorArgument arg, ExpressionNode member)
         {
-            return GetFieldPath(arg, member, out _);
+            return arg.GetFieldPath(member);
         }
 
 
@@ -138,10 +50,10 @@ namespace Vitorm.MongoDB.QueryExecutor
 
                         if (TypeUtil.IsArrayType(type))
                         {
-                            if (v is ICollection collection)
+                            if (v is IEnumerable enumerable)
                             {
                                 var array = new BsonArray();
-                                foreach (var item in collection)
+                                foreach (var item in enumerable)
                                 {
                                     array.Add(BsonValue.Create(item));
                                 }
@@ -211,24 +123,25 @@ namespace Vitorm.MongoDB.QueryExecutor
             return false;
         }
 
-        public virtual BsonDocument EvalExpression(QueryExecutorArgument arg, ExpressionNode node)
+        public virtual BsonDocument TranslateFilter(QueryExecutorArgument arg, ExpressionNode node)
         {
             switch (node?.nodeType)
             {
                 case NodeType.AndAlso:
                     {
                         ExpressionNode_Binary binary = node;
-                        return new BsonDocument("$and", new BsonArray { EvalExpression(arg, binary.left), EvalExpression(arg, binary.right) });
+                        return new BsonDocument("$and", new BsonArray { TranslateFilter(arg, binary.left), TranslateFilter(arg, binary.right) });
                     }
                 case NodeType.OrElse:
                     {
                         ExpressionNode_Binary binary = node;
-                        return new BsonDocument("$or", new BsonArray { EvalExpression(arg, binary.left), EvalExpression(arg, binary.right) });
+                        return new BsonDocument("$or", new BsonArray { TranslateFilter(arg, binary.left), TranslateFilter(arg, binary.right) });
                     }
                 case NodeType.Not:
                     {
                         ExpressionNode_Not not = node;
-                        return new BsonDocument("$not", EvalExpression(arg, not.body));
+                        //return new BsonDocument("$not", EvalExpression(arg, not.body));
+                        return new BsonDocument("$nor", new BsonArray { TranslateFilter(arg, not.body) });
                     }
                 case NodeType.Equal:
                 case NodeType.NotEqual:
@@ -259,13 +172,21 @@ namespace Vitorm.MongoDB.QueryExecutor
                         {
                             NodeType.Equal => "$eq",
                             NodeType.NotEqual => "$ne",
-                            NodeType.LessThan => fieldInLeft ? "$lt" : "$gte",
-                            NodeType.LessThanOrEqual => fieldInLeft ? "$lte" : "$gt",
-                            NodeType.GreaterThan => fieldInLeft ? "$gt" : "$lte",
-                            NodeType.GreaterThanOrEqual => fieldInLeft ? "$gte" : "$lt",
+                            NodeType.LessThan => fieldInLeft ? "$lt" : "$gt",
+                            NodeType.LessThanOrEqual => fieldInLeft ? "$lte" : "$gte",
+                            NodeType.GreaterThan => fieldInLeft ? "$gt" : "$lt",
+                            NodeType.GreaterThanOrEqual => fieldInLeft ? "$gte" : "$lte",
                         };
 
                         return new BsonDocument(fieldPath, new BsonDocument(operate, value));
+                    }
+                case NodeType.Member:
+                    {
+                        var propertyType = node.Member_GetType();
+                        var fieldPath = GetFieldPath(arg, node);
+                        if (propertyType == typeof(bool) || propertyType == typeof(bool?))
+                            return new BsonDocument(fieldPath, new BsonDocument("$eq", BsonValue.Create(true)));
+                        break;
                     }
                 case NodeType.MethodCall:
                     {
@@ -273,7 +194,52 @@ namespace Vitorm.MongoDB.QueryExecutor
 
                         switch (methodCall.methodName)
                         {
-                            // ##1 in
+
+                            #region String method:  StartsWith EndsWith Contains
+                            case nameof(string.StartsWith): // String.StartsWith
+                                {
+                                    var member = methodCall.@object;
+                                    var value = methodCall.arguments[0];
+
+                                    var fieldPath = GetFieldPath(arg, member);
+                                    TryReadValue(arg, value, out var bValue);
+                                    string strValue = bValue.AsString;
+                                    strValue = Regex.Escape(strValue);
+
+                                    var regex = $"^{strValue}";
+                                    return new BsonDocument(fieldPath, new BsonDocument("$regex", BsonValue.Create(regex)));
+                                }
+                            case nameof(string.EndsWith): // String.EndsWith
+                                {
+                                    var member = methodCall.@object;
+                                    var value = methodCall.arguments[0];
+
+                                    var fieldPath = GetFieldPath(arg, member);
+                                    TryReadValue(arg, value, out var bValue);
+                                    string strValue = bValue.AsString;
+                                    strValue = Regex.Escape(strValue);
+
+                                    var regex = $"{strValue}$";
+                                    return new BsonDocument(fieldPath, new BsonDocument("$regex", BsonValue.Create(regex)));
+                                }
+                            case nameof(string.Contains) when methodCall.methodCall_typeName == "String": // String.Contains
+                                {
+                                    var member = methodCall.@object;
+                                    var value = methodCall.arguments[0];
+
+                                    var fieldPath = GetFieldPath(arg, member);
+                                    TryReadValue(arg, value, out var bValue);
+                                    string strValue = bValue.AsString;
+                                    strValue = Regex.Escape(strValue);
+
+                                    var regex = $"{strValue}";
+                                    return new BsonDocument(fieldPath, new BsonDocument("$regex", BsonValue.Create(regex)));
+                                }
+                            #endregion
+
+
+
+                            // in
                             case nameof(List<string>.Contains) when methodCall.@object is not null && methodCall.arguments.Length == 1:
                                 {
                                     var values = methodCall.@object;
@@ -298,7 +264,8 @@ namespace Vitorm.MongoDB.QueryExecutor
                         throw new NotSupportedException("[TranslateService] not supported MethodCall: " + methodCall.methodName);
                     }
             }
-            throw new NotSupportedException("[TranslateService] not supported notType: " + node?.nodeType);
+
+            throw new NotSupportedException("[TranslateService] not supported nodeType: " + node?.nodeType);
         }
 
     }

@@ -60,8 +60,9 @@ namespace Vitorm.MsTest.CommonTest
                 Assert.AreEqual(2, user.id);
             }
             {
-                var user = dbSet.Query().Where(m => !m.isEven.Value).OrderBy(m => m.id).First();
-                Assert.AreEqual(3, user.id);
+                var users = dbSet.Query().Where(m => !m.isEven.Value).OrderBy(m => m.id).ToList();
+                var ids = String.Join(',', users.Select(m => m.id));
+                Assert.AreEqual("1,3", ids);
             }
             {
                 var query = dbSet.Query().Where(m => m.isEven.Value).OrderBy(m => m.isEven).Select(m => new { m.id, m.isEven });

@@ -7,13 +7,9 @@ namespace Vitorm.MongoDB
 {
     public class DbConfig
     {
-        public DbConfig(string connectionString, int? commandTimeout = null)
+        public DbConfig(string database, string connectionString, string readOnlyConnectionString = null, int? commandTimeout = null)
         {
-            this.connectionString = connectionString;
-            this.commandTimeout = commandTimeout;
-        }
-        public DbConfig(string connectionString, string readOnlyConnectionString, int? commandTimeout = null)
-        {
+            this.database = database;
             this.connectionString = connectionString;
             this.readOnlyConnectionString = readOnlyConnectionString;
             this.commandTimeout = commandTimeout;
@@ -35,31 +31,35 @@ namespace Vitorm.MongoDB
             if (config.TryGetValue("commandTimeout", out value) && value is Int32 commandTimeout)
                 this.commandTimeout = commandTimeout;
         }
-        public string database { get; set; }
+        public string database { get; protected set; }
 
-        public string connectionString { get; set; }
-        public string readOnlyConnectionString { get; set; }
-        public int? commandTimeout { get; set; }
+        public string connectionString { get; protected set; }
+        public string readOnlyConnectionString { get; protected set; }
+        public int? commandTimeout { get; protected set; }
 
-        MongoClient client;
-        MongoClient readOnlyClient;
+        protected MongoClient client;
+        protected MongoClient readOnlyClient;
 
-        MongoClient Client => client ??= new MongoClient(connectionString);
-        MongoClient ReadOnlyClient => readOnlyClient ??= new MongoClient(readOnlyConnectionString);
+        public virtual MongoClient Client => client ??= new MongoClient(connectionString);
+        public virtual MongoClient ReadOnlyClient => readOnlyClient ??= new MongoClient(readOnlyConnectionString);
 
-        public IMongoDatabase GetDatabase() => Client.GetDatabase(database);
-        public IMongoDatabase GetReadOnlyDatabase() => ReadOnlyClient.GetDatabase(database);
-
-
+        public virtual IMongoDatabase GetDatabase() => Client.GetDatabase(database);
+        public virtual IMongoDatabase GetReadOnlyDatabase() => ReadOnlyClient.GetDatabase(database);
 
 
-        internal string dbHashCode => connectionString.GetHashCode().ToString();
+        public virtual DbConfig WithDatabase(string databaseName)
+        {
+            return new(databaseName, connectionString, readOnlyConnectionString, commandTimeout);
+        }
+
+
+        internal string dbHashCode => connectionString.GetHashCode().ToString() + "::" + database;
 
 
 
         /// <summary>
         /// to identify whether contexts are from the same database
         /// </summary>
-        public virtual string dbGroupName => "DbSet_" + dbHashCode;
+        public virtual string dbGroupName => "MongoDb_DbSet_" + dbHashCode;
     }
 }

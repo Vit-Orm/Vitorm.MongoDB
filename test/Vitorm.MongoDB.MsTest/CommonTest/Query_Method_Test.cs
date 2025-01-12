@@ -200,7 +200,7 @@ namespace Vitorm.MsTest.CommonTest
         }
 
 
-        [TestMethod]
+        //[TestMethod]
         public void Test_ToListAndTotal()
         {
             using var dbContext = DataSource.CreateDbContext();

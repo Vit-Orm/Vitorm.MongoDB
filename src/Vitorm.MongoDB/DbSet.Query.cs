@@ -19,21 +19,6 @@ namespace Vitorm.MongoDB
             return QueryableBuilder.Build<Entity>(QueryExecutor, DbContext.dbConfig.dbGroupName);
         }
 
-        protected object QueryExecutor(Expression expression, Type expressionResultType)
-        {
-            object result = null;
-            Action dispose = null;
-            try
-            {
-                return result = ExecuteQuery(expression, expressionResultType, dispose);
-            }
-            catch
-            {
-                dispose?.Invoke();
-                throw;
-            }
-        }
-
 
         #region QueryExecutor
 
@@ -54,22 +39,22 @@ namespace Vitorm.MongoDB
             //// Orm_Extensions
             //AddDefaultQueryExecutor(ExecuteUpdate.Instance);
             //AddDefaultQueryExecutor(ExecuteDelete.Instance);
-            //AddDefaultQueryExecutor(ToExecuteString.Instance);
+            AddDefaultQueryExecutor(ToExecuteString.Instance);
 
             // ToList
             AddDefaultQueryExecutor(ToList.Instance);
-            //// Count TotalCount
-            //AddDefaultQueryExecutor(Count.Instance);
-            //AddDefaultQueryExecutor(Count.Instance, methodName: nameof(Queryable_Extensions.TotalCount));
+            // Count TotalCount
+            AddDefaultQueryExecutor(Count.Instance);
+            AddDefaultQueryExecutor(Count.Instance, methodName: nameof(Queryable_Extensions.TotalCount));
 
             //// ToListAndTotalCount
             //AddDefaultQueryExecutor(ToListAndTotalCount.Instance);
 
-            //// FirstOrDefault First LastOrDefault Last
-            //AddDefaultQueryExecutor(FirstOrDefault.Instance);
-            //AddDefaultQueryExecutor(FirstOrDefault.Instance, methodName: nameof(Queryable.First));
-            //AddDefaultQueryExecutor(FirstOrDefault.Instance, methodName: nameof(Queryable.LastOrDefault));
-            //AddDefaultQueryExecutor(FirstOrDefault.Instance, methodName: nameof(Queryable.Last));
+            // FirstOrDefault First LastOrDefault Last
+            AddDefaultQueryExecutor(FirstOrDefault.Instance);
+            AddDefaultQueryExecutor(FirstOrDefault.Instance, methodName: nameof(Queryable.First));
+            AddDefaultQueryExecutor(FirstOrDefault.Instance, methodName: nameof(Queryable.LastOrDefault));
+            AddDefaultQueryExecutor(FirstOrDefault.Instance, methodName: nameof(Queryable.Last));
             #endregion
 
 
@@ -78,8 +63,8 @@ namespace Vitorm.MongoDB
             //AddDefaultQueryExecutor(ExecuteUpdateAsync.Instance);
             //AddDefaultQueryExecutor(ExecuteDeleteAsync.Instance);
 
-            //// ToList
-            //AddDefaultQueryExecutor(ToListAsync.Instance);
+            // ToList
+            AddDefaultQueryExecutor(ToListAsync.Instance);
             //// Count TotalCount
             //AddDefaultQueryExecutor(CountAsync.Instance);
             //AddDefaultQueryExecutor(CountAsync.Instance, methodName: nameof(Queryable_AsyncExtensions.TotalCountAsync));
@@ -114,7 +99,7 @@ namespace Vitorm.MongoDB
             return false;
         }
 
-        protected virtual object ExecuteQuery(Expression expression, Type expressionResultType, Action dispose)
+        protected virtual object QueryExecutor(Expression expression, Type expressionResultType)
         {
             // #1 convert to ExpressionNode 
             ExpressionNode_Lambda node = DbContext.convertService.ConvertToData_LambdaNode(expression, autoReduce: true, isArgument: QueryIsFromSameDb);
@@ -133,7 +118,6 @@ namespace Vitorm.MongoDB
                 dbContext = DbContext,
                 expression = expression,
                 expressionResultType = expressionResultType,
-                dispose = dispose,
             };
 
 

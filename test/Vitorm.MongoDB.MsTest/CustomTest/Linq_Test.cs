@@ -24,7 +24,6 @@ namespace Vitorm.MsTest.CustomTest
             public List<float?> scoreList { get; set; }
             public List<int> scoreRankList { get; set; }
 
-            public User2 father { get; set; }
             public User2[] parents { get; set; }
             public List<User2> parentList { get; set; }
 

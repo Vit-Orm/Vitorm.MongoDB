@@ -29,14 +29,19 @@ namespace Vitorm.MsTest
 
         //[BsonDateTimeOptions(Kind = DateTimeKind.Utc)]
         public DateTime? birth { get; set; }
-
+        [System.ComponentModel.DataAnnotations.Schema.Column("userFatherId")]
         public int? fatherId { get; set; }
 
-
+        [System.ComponentModel.DataAnnotations.Schema.Column("userMotherId")]
         public int? motherId { get; set; }
 
+        [System.ComponentModel.DataAnnotations.Schema.Column("userClassId")]
         // [BsonIgnoreIfNull]
         public int? classId { get; set; }
+
+        [System.ComponentModel.DataAnnotations.Schema.Column("userFather")]
+        public User father { get; set; }
+
 
         [System.ComponentModel.DataAnnotations.Schema.NotMapped]
         [BsonIgnore]
@@ -105,10 +110,16 @@ namespace Vitorm.MsTest
                     new User { id=5, name="u500" },
                     new User { id=6, name="u600" },
                 };
+
                 users.ForEach(user =>
                 {
                     user.birth = DateTime.Parse("2021-01-01 00:00:00").AddHours(user.id);
                     user.classId = user.id % 2 + 1;
+                });
+
+                users.ForEach(user =>
+                {
+                    user.father = users.FirstOrDefault(m => m.id == user.fatherId);
                 });
 
                 dbContext.AddRange(users);
