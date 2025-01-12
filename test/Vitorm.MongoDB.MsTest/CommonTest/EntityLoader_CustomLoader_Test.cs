@@ -162,7 +162,6 @@ namespace Vitorm.MsTest.CommonTest
                             );
                     }).Where(column => column != null);
 
-
                 var propertyType = new PropertyObjectType(entityType);
                 propertyType.properties = propertyDescriptors.Select(m => (IPropertyDescriptor)m).ToArray();
 

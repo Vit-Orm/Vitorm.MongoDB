@@ -200,7 +200,19 @@ namespace Vitorm.MsTest.CommonTest
         }
 
 
+        //[TestMethod]
+        public void Test_ToListAndTotal()
+        {
+            using var dbContext = DataSource.CreateDbContext();
 
+            // ToListAndTotalCount
+            {
+                var query = dbContext.Query<User>().Where(user => user.id > 2).Skip(1).Take(2);
+                var (list, totalCount) = query.ToListAndTotalCount();
+                Assert.AreEqual(2, list.Count);
+                Assert.AreEqual(4, totalCount);
+            }
+        }
 
 
 
@@ -320,10 +332,10 @@ namespace Vitorm.MsTest.CommonTest
             using var dbContext = DataSource.CreateDbContext();
             var userQuery = dbContext.Query<User>();
 
-            //{
-            //    var user = userQuery.OrderBy(m => m.id).Last();
-            //    Assert.AreEqual(6, user?.id);
-            //}
+            {
+                var user = userQuery.OrderBy(m => m.id).Last();
+                Assert.AreEqual(6, user?.id);
+            }
 
             {
                 var user = userQuery.Last(user => user.id == 3);
